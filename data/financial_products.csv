@@ -1,0 +1,16 @@
+symbol,name,product_type,asset_class,issuer,currency,country,risk_level,expense_ratio,minimum_investment
+NIFTY50-INDX,Nifty 50 Index Fund,index_fund,equity,UTI Mutual Fund,INR,India,high,0.0020,500.00
+FLEXICAP-EQ,Parag Parikh Flexi Cap Fund,mutual_fund,equity,PPFAS Mutual Fund,INR,India,high,0.0065,1000.00
+MIDCAP-EQ,HDFC Mid-Cap Opportunities Fund,mutual_fund,equity,HDFC Asset Management,INR,India,very_high,0.0075,500.00
+CORPBOND-DBT,ICICI Prudential Corporate Bond Fund,mutual_fund,debt,ICICI Prudential AMC,INR,India,moderate,0.0035,1000.00
+PPF-GOV,Public Provident Fund Scheme,government_security,debt,Government of India,INR,India,low,0.0000,500.00
+SGB-GOLD,Sovereign Gold Bond Series 2023-24,gold,gold,Reserve Bank of India,INR,India,moderate,0.0000,5000.00
+GOLDetf-COMM,Nippon India ETF Gold BeES,etf,gold,Nippon Life India AMC,INR,India,moderate,0.0050,100.00
+LIQUID-CSH,Mirae Asset Cash Management Fund,mutual_fund,cash,Mirae Asset AMC,INR,India,low,0.0015,1000.00
+BANKFD-1Y,HDFC Bank 1-Year Fixed Deposit,fixed_deposit,debt,HDFC Bank Limited,INR,India,low,0.0000,5000.00
+HYBRID-BAL,SBI Equity Hybrid Fund,mutual_fund,hybrid,SBI Funds Management,INR,India,moderate,0.0070,500.00
+T-BILL-91D,Government 91-Day Treasury Bill,government_security,debt,Reserve Bank of India,INR,India,low,0.0000,10000.00
+RELIANCE-EQ,Reliance Industries Limited,stock,equity,Reliance Industries,INR,India,high,0.0000,2500.00
+INFY-EQ,Infosys Limited,stock,equity,Infosys Limited,INR,India,high,0.0000,1500.00
+TCS-EQ,Tata Consultancy Services Limited,stock,equity,Tata Group,INR,India,high,0.0000,3500.00
+HDFCBANK-EQ,HDFC Bank Limited,stock,equity,HDFC Bank,INR,India,high,0.0000,1600.00

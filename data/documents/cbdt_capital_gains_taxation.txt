@@ -1,0 +1,35 @@
+# Income Tax Department & CBDT: Taxation of Capital Gains on Investments in India
+# Organization: CBDT (Central Board of Direct Taxes, Ministry of Finance)
+# Document Type: Tax Code & Guidance
+# Topic: taxation
+# Asset Class: all
+# Publication Date: 2024-07-23 (Finance Act 2024 Amendments)
+
+1. Scope of Capital Gains in India
+Gains arising from the transfer of capital assets (shares, equity mutual funds, debt funds, bonds, real estate, gold) are categorized into Short-Term Capital Gains (STCG) and Long-Term Capital Gains (LTCG) depending on the holding period.
+
+2. Equity Oriented Mutual Funds and Listed Shares (STT Paid)
+- Holding Period Threshold: 12 months (1 year).
+  * Holding period <= 12 months: Short-Term Capital Gain (STCG).
+  * Holding period > 12 months: Long-Term Capital Gain (LTCG).
+
+- Tax Rates (Post Finance Act 2024):
+  a) STCG under Section 111A: Taxed at flat 20% (increased from 15%) plus applicable surcharge and 4% health & education cess.
+  b) LTCG under Section 112A: Taxed at flat 12.5% (increased from 10%) on gains exceeding the statutory threshold of INR 1,25,000 (INR 1.25 Lakhs) per financial year. Long-term capital gains up to INR 1.25 Lakhs per financial year are completely exempt from income tax.
+
+3. Debt Mutual Funds and Specified Mutual Funds (Post Finance Act 2023)
+- Under Section 50AA of the Income Tax Act, gains from 'Specified Mutual Funds' (funds where equity holding is not more than 35%) acquired on or after 1st April 2023 are deemed to be Short-Term Capital Gains regardless of the holding period.
+- Tax Treatment: Gains are added to the investor's total income and taxed at the investor's applicable marginal income tax slab rates. Indexation benefit is no longer available for debt funds acquired after March 31, 2023.
+
+4. Physical Gold, Gold ETFs, and Sovereign Gold Bonds (SGB)
+a) Gold ETFs & Mutual Funds: Holding period for long term is 24 months. LTCG is taxed at 12.5% without indexation.
+b) Sovereign Gold Bonds (SGB) issued by RBI:
+- Capital gains arising upon redemption of SGB at maturity (after 8 years) by an individual are 100% exempt from capital gains tax under Section 47(viic) of the Income Tax Act.
+- Annual coupon/interest of 2.50% p.a. paid semi-annually is taxable under "Income from Other Sources" at slab rates.
+
+5. Section 80C Tax Saving Deductions
+Under Section 80C (Old Tax Regime), deductions up to INR 1,50,000 per financial year are permitted across qualifying investments:
+- Public Provident Fund (PPF): 15-year statutory term, completely EEE (Exempt-Exempt-Exempt) tax status.
+- Equity Linked Savings Scheme (ELSS): 3-year lockin.
+- National Savings Certificate (NSC) & 5-year Tax Saving Bank FDs.
+- Employee Provident Fund (EPF) employee contribution.

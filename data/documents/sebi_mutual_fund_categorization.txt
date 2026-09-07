@@ -1,0 +1,43 @@
+# SEBI Circular: Categorization and Rationalization of Mutual Fund Schemes
+# Organization: SEBI (Securities and Exchange Board of India)
+# Document Type: Circular & Guidelines
+# Topic: mutual_funds
+# Asset Class: equity
+# Publication Date: 2017-10-06 (Updated 2024)
+
+1. Executive Summary and Objective
+To enable retail and institutional investors in India to evaluate and choose suitable mutual fund schemes without confusion across multiple indistinguishable products, SEBI established standardized categories and definitions for all open-ended mutual fund schemes operated by Asset Management Companies (AMCs) registered in India.
+
+2. Equity Scheme Categories and Portfolio Mandates
+a) Large Cap Fund:
+- Mandate: Minimum 80% investment in equity and equity-related instruments of large-cap companies.
+- Definition: Top 100 companies by full market capitalization listed on Indian stock exchanges (NSE/BSE).
+- Risk Profile: High risk, suitable for conservative-to-moderate equity investors seeking stability and liquidity with long-term capital appreciation.
+
+b) Mid Cap Fund:
+- Mandate: Minimum 65% investment in equity and equity-related instruments of mid-cap companies.
+- Definition: 101st to 250th companies by full market capitalization.
+- Risk Profile: Very High risk, higher growth potential than large caps with higher short-to-medium term volatility.
+
+c) Small Cap Fund:
+- Mandate: Minimum 65% investment in equity and equity-related instruments of small-cap companies.
+- Definition: 251st company onwards by full market capitalization.
+- Risk Profile: Very High risk, suitable for aggressive investors with long investment horizon (7+ years).
+
+d) Flexi Cap Fund:
+- Mandate: Minimum 65% investment in equity and equity-related instruments across large cap, mid cap, and small cap stocks without static caps.
+- Dynamic Allocation: The fund manager has full discretion to shift allocation between market caps based on valuations and macroeconomic conditions.
+
+e) Equity Linked Savings Scheme (ELSS):
+- Mandate: Minimum 80% investment in equity and equity-related instruments.
+- Statutory Feature: Mandatory statutory lock-in period of 3 years from the date of each SIP or lump-sum unit allotment.
+- Tax Benefit: Qualifies for tax deduction under Section 80C of the Income Tax Act up to INR 1,50,000 per financial year (under the Old Tax Regime).
+
+3. Debt Scheme Categories
+a) Liquid Fund: Investment in debt and money market securities with maturity up to 91 days only. Suitable for short-term emergency fund parking.
+b) Corporate Bond Fund: Minimum 80% investment in highest-rated corporate bonds (AA+ and above).
+c) Banking and PSU Fund: Minimum 80% investment in debt instruments of banks, Public Sector Undertakings (PSUs), and Public Financial Institutions.
+
+4. Regulatory Protection and Safeguards
+- All mutual funds are governed by the SEBI (Mutual Funds) Regulations, 1996.
+- Assets are held by independent custodians and overseen by Trustees to safeguard unit-holders' interests.

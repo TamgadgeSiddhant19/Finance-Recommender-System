@@ -1,0 +1,42 @@
+# PFRDA Guidelines: National Pension System (NPS) Architecture and Rules
+# Organization: PFRDA (Pension Fund Regulatory and Development Authority)
+# Document Type: Regulatory Guidelines
+# Topic: retirement
+# Asset Class: hybrid
+# Publication Date: 2023-11-15 (Updated 2024)
+
+1. Overview of National Pension System (NPS)
+The National Pension System is a voluntary, contributory retirement savings scheme regulated by the Pension Fund Regulatory and Development Authority (PFRDA) in India. It is structured to provide income security in old age through long-term market-linked compounding and disciplined savings.
+
+2. Account Tiers
+a) Tier-I Account (Mandatory Retirement Account):
+- Non-withdrawable retirement account with strict premature exit rules until superannuation / age 60.
+- Mandatory minimum annual contribution: INR 1,000 per financial year.
+- At maturity (age 60):
+  * Up to 60% of the accumulated corpus can be withdrawn as a tax-free lump sum.
+  * Minimum 40% of the corpus must be mandatorily utilized to purchase a life annuity from an approved Annuity Service Provider (ASP) to generate regular monthly pension.
+
+b) Tier-II Account (Voluntary Savings Account):
+- Flexible, freely withdrawable investment account with no lock-in period.
+- Requires an active Tier-I account to activate.
+- Withdrawals from Tier-II do not enjoy tax exemptions (gains taxed as per capital gains or slab rates for non-government subscribers).
+
+3. Investment Choices and Asset Classes
+Subscribers can choose between two main investment options:
+a) Active Choice:
+Subscriber decides asset allocation percentage across 4 asset classes:
+- Asset Class E (Equity): Maximum up to 75% equity exposure allowed up to age 50, gradually tapering to 50% by age 60.
+- Asset Class C (Corporate Debt): Investment in rated corporate bonds and debentures.
+- Asset Class G (Government Securities): Investment in Central and State Government bonds.
+- Asset Class A (Alternative Assets): Maximum up to 5% in REITs, InvITs, and AIFs.
+
+b) Auto Choice (Lifecycle Funds):
+Automated, age-based matrix adjusting equity and debt exposure:
+- Aggressive Life Cycle Fund (LC75): 75% equity up to age 35, gradually tapering.
+- Moderate Life Cycle Fund (LC50 - Default): 50% equity up to age 35, tapering to 10% by age 55.
+- Conservative Life Cycle Fund (LC25): 25% equity up to age 35, tapering to 5% by age 55.
+
+4. Exclusive Tax Deductions on NPS (Income Tax Act)
+- Section 80CCD(1): Employee/individual contribution up to 10% of salary (or 20% of gross total income for self-employed) within the overall INR 1.5 Lakh Section 80CCE ceiling.
+- Section 80CCD(1B): Exclusive, additional tax deduction of up to INR 50,000 per financial year over and above the Section 80C limit (under the Old Tax Regime).
+- Section 80CCD(2): Employer's contribution up to 10% of salary (14% for Central/State Govt employees) is deductible from taxable income under both Old and New Tax Regimes.
