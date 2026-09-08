@@ -133,8 +133,15 @@ export function FinancialDataProvider({ children }: { children: React.ReactNode 
     }
 
     try {
+      const normalizedGoalType =
+        newGoalData.goal_type === "HOUSE_DOWNPAYMENT"
+          ? "house"
+          : newGoalData.goal_type.toString().toLowerCase();
+
       const savedGoal = await goalsService.createGoal({
         ...newGoalData,
+        goal_type: normalizedGoalType as any,
+        priority: (newGoalData.priority || "MEDIUM").toString().toLowerCase() as any,
         user_id: user.id,
       });
 

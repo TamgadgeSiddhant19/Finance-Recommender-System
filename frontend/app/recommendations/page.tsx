@@ -269,7 +269,7 @@ function RecommendationsContent() {
                     </Badge>
                   </div>
                   <p className="text-xs text-slate-400">
-                    Ticker: <strong className="text-slate-300">{item.symbol}</strong> • Suitability Score: <strong className="text-emerald-400">{item.suitability_score.toFixed(1)}/100</strong>
+                    Ticker: <strong className="text-slate-300">{item.symbol}</strong> • Suitability Score: <strong className="text-emerald-400">{Number(item.suitability_score ?? 0).toFixed(1)}/100</strong>
                   </p>
                 </div>
 

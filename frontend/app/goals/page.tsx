@@ -277,7 +277,7 @@ function GoalsContent() {
                   onChange={(e) => setNewGoal({ ...newGoal, goal_type: e.target.value as GoalType })}
                   options={[
                     { value: "RETIREMENT", label: "Retirement Corpus" },
-                    { value: "HOUSE_DOWNPAYMENT", label: "House Downpayment" },
+                    { value: "HOUSE", label: "House Downpayment / Real Estate" },
                     { value: "EMERGENCY_FUND", label: "Emergency Fund Buffer" },
                     { value: "EDUCATION", label: "Higher Education" },
                     { value: "WEALTH_CREATION", label: "Long-Term Wealth Creation" },

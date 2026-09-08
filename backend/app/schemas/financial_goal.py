@@ -16,7 +16,10 @@ class FinancialGoalBase(BaseModel):
     @classmethod
     def normalize_goal_type(cls, v):
         if isinstance(v, str):
-            return v.lower()
+            v_clean = v.lower().strip()
+            if v_clean in ("house_downpayment", "house_purchase", "real_estate", "home"):
+                return "house"
+            return v_clean
         return v
 
     @field_validator("priority", mode="before")

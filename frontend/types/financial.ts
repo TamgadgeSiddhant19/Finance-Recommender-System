@@ -1,6 +1,6 @@
 export type RiskTolerance = "CONSERVATIVE" | "MODERATE" | "AGGRESSIVE";
 export type InvestmentExperience = "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
-export type GoalType = "EMERGENCY_FUND" | "RETIREMENT" | "HOUSE_DOWNPAYMENT" | "EDUCATION" | "WEALTH_CREATION" | "OTHER";
+export type GoalType = "EMERGENCY_FUND" | "RETIREMENT" | "HOUSE" | "HOUSE_DOWNPAYMENT" | "EDUCATION" | "WEALTH_CREATION" | "OTHER";
 export type GoalPriority = "HIGH" | "MEDIUM" | "LOW";
 
 export interface UserProfile {

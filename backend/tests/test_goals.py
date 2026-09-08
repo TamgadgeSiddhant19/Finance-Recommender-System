@@ -105,3 +105,19 @@ async def test_create_and_get_financial_goals(client: AsyncClient):
         headers=headers,
     )
     assert invalid_res.status_code == 422
+
+    # 10. House downpayment alias must normalize cleanly to 'house'
+    g5_res = await client.post(
+        f"{settings.API_V1_STR}/goals",
+        json={
+            "goal_type": "house_downpayment",
+            "target_amount": "3000000.00",
+            "current_amount": "1000000.00",
+            "target_years": 5,
+            "priority": "high",
+        },
+        headers=headers,
+    )
+    assert g5_res.status_code == 201
+    assert g5_res.json()["goal_type"] == "house"
+    assert float(g5_res.json()["target_amount"]) == 3000000.00
