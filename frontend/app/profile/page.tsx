@@ -235,6 +235,7 @@ function ProfileContent() {
               type="number"
               min={18}
               max={100}
+              step={1}
               placeholder="e.g. 28"
               value={formData.age}
               onChange={(e) => handleChange("age", e.target.value)}
@@ -246,7 +247,7 @@ function ProfileContent() {
               type="number"
               prefixSymbol="₹"
               min={0}
-              step={1000}
+              step="1"
               placeholder="e.g. 85000"
               value={formData.monthly_income}
               onChange={(e) => handleChange("monthly_income", e.target.value)}
@@ -258,7 +259,7 @@ function ProfileContent() {
               type="number"
               prefixSymbol="₹"
               min={0}
-              step={1000}
+              step="1"
               placeholder="e.g. 40000"
               value={formData.monthly_expenses}
               onChange={(e) => handleChange("monthly_expenses", e.target.value)}
@@ -282,7 +283,7 @@ function ProfileContent() {
               type="number"
               prefixSymbol="₹"
               min={0}
-              step={5000}
+              step="1"
               placeholder="e.g. 150000"
               value={formData.total_savings}
               onChange={(e) => handleChange("total_savings", e.target.value)}
@@ -295,7 +296,7 @@ function ProfileContent() {
               type="number"
               prefixSymbol="₹"
               min={0}
-              step={5000}
+              step="1"
               placeholder="e.g. 0"
               value={formData.total_debt}
               onChange={(e) => handleChange("total_debt", e.target.value)}
@@ -308,7 +309,7 @@ function ProfileContent() {
               type="number"
               prefixSymbol="₹"
               min={0}
-              step={1000}
+              step="1"
               placeholder={hasCashflowInput ? `Max: ₹${calculatedSurplus}` : "e.g. 25000"}
               value={formData.monthly_investment_capacity}
               onChange={(e) => handleChange("monthly_investment_capacity", e.target.value)}

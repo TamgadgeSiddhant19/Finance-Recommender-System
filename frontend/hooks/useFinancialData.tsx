@@ -84,26 +84,27 @@ export function FinancialDataProvider({ children }: { children: React.ReactNode 
     }
 
     try {
-      let savedProfile: UserProfile;
-      if (profile && profile.id) {
-        savedProfile = await profileService.updateMyProfile(data);
-      } else {
-        savedProfile = await profileService.createProfile({
-          age: Number(data.age),
-          monthly_income: Number(data.monthly_income),
-          monthly_expenses: Number(data.monthly_expenses),
-          total_savings: Number(data.total_savings),
-          monthly_investment_capacity: Number(data.monthly_investment_capacity),
-          total_debt: Number(data.total_debt || 0),
-          risk_tolerance: data.risk_tolerance || "MODERATE",
-          investment_experience: data.investment_experience || "INTERMEDIATE",
-        });
-      }
+      const payload: Partial<UserProfile> = {
+        age: Number(data.age),
+        monthly_income: Number(data.monthly_income),
+        monthly_expenses: Number(data.monthly_expenses),
+        total_savings: Number(data.total_savings),
+        monthly_investment_capacity: Number(data.monthly_investment_capacity),
+        total_debt: Number(data.total_debt || 0),
+        risk_tolerance: (data.risk_tolerance || "MODERATE").toString().toLowerCase() as any,
+        investment_experience: (data.investment_experience || "INTERMEDIATE").toString().toLowerCase() as any,
+      };
+
+      const savedProfile = await profileService.updateMyProfile(payload);
       setProfile(savedProfile);
 
       // Re-fetch real backend analysis
-      const updatedAnalysis = await analysisService.getMyAnalysis();
-      setAnalysis(updatedAnalysis);
+      try {
+        const updatedAnalysis = await analysisService.getMyAnalysis();
+        setAnalysis(updatedAnalysis);
+      } catch (analysisErr) {
+        console.warn("Could not fetch analysis immediately after saving profile:", analysisErr);
+      }
 
       toast({
         type: "success",

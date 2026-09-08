@@ -19,8 +19,8 @@ export const profileService = {
   },
 
   async createProfile(profileData: Omit<UserProfile, "id" | "created_at" | "updated_at">): Promise<UserProfile> {
-    return await apiClient<UserProfile>("/profile", {
-      method: "POST",
+    return await apiClient<UserProfile>("/profile/me", {
+      method: "PUT",
       body: JSON.stringify(profileData),
     });
   },

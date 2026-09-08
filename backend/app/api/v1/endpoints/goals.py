@@ -55,7 +55,7 @@ async def create_goal(
     """
     Create a new financial goal associated with the authenticated user with ownership verification.
     """
-    if current_user.id != goal_in.user_id:
+    if goal_in.user_id is not None and current_user.id != goal_in.user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to create goals for another user.",

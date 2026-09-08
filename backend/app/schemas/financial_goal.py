@@ -1,3 +1,4 @@
+from typing import Optional
 from datetime import datetime
 from decimal import Decimal
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -27,7 +28,7 @@ class FinancialGoalBase(BaseModel):
 
 
 class FinancialGoalCreate(FinancialGoalBase):
-    user_id: int = Field(..., description="ID of the user this goal belongs to")
+    user_id: Optional[int] = Field(None, description="ID of the user this goal belongs to (defaults to authenticated user)")
 
 
 class FinancialGoalResponse(FinancialGoalBase):

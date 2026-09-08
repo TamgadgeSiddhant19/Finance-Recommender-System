@@ -289,8 +289,8 @@ function GoalsContent() {
                   label="Target Corpus Amount (INR)"
                   type="number"
                   prefixSymbol="₹"
-                  min={10000}
-                  step={25000}
+                  min={1}
+                  step="1"
                   placeholder="e.g. 2500000"
                   value={newGoal.target_amount}
                   onChange={(e) => setNewGoal({ ...newGoal, target_amount: e.target.value })}
@@ -302,7 +302,7 @@ function GoalsContent() {
                   type="number"
                   prefixSymbol="₹"
                   min={0}
-                  step={10000}
+                  step="1"
                   placeholder="e.g. 50000"
                   value={newGoal.current_amount}
                   onChange={(e) => setNewGoal({ ...newGoal, current_amount: e.target.value })}
@@ -315,6 +315,7 @@ function GoalsContent() {
                     type="number"
                     min={1}
                     max={50}
+                    step={1}
                     placeholder="e.g. 10"
                     value={newGoal.target_years}
                     onChange={(e) => setNewGoal({ ...newGoal, target_years: e.target.value })}

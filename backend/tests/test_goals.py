@@ -61,3 +61,47 @@ async def test_create_and_get_financial_goals(client: AsyncClient):
     me_res = await client.get(f"{settings.API_V1_STR}/goals/me", headers=headers)
     assert me_res.status_code == 200
     assert len(me_res.json()) == 2
+
+    # 7. Create Goal with 25,00,000 (₹25 Lakhs) and without explicit user_id in payload
+    g3_res = await client.post(
+        f"{settings.API_V1_STR}/goals",
+        json={
+            "goal_type": "wealth_creation",
+            "target_amount": "2500000.00",
+            "current_amount": "100000.00",
+            "target_years": 10,
+            "priority": "high",
+        },
+        headers=headers,
+    )
+    assert g3_res.status_code == 201
+    assert float(g3_res.json()["target_amount"]) == 2500000.00
+
+    # 8. Create Goal with 10,00,000 (₹10 Lakhs)
+    g4_res = await client.post(
+        f"{settings.API_V1_STR}/goals",
+        json={
+            "goal_type": "education",
+            "target_amount": "1000000.00",
+            "current_amount": "50000.00",
+            "target_years": 5,
+            "priority": "medium",
+        },
+        headers=headers,
+    )
+    assert g4_res.status_code == 201
+    assert float(g4_res.json()["target_amount"]) == 1000000.00
+
+    # 9. Invalid negative value must be rejected by Pydantic (422)
+    invalid_res = await client.post(
+        f"{settings.API_V1_STR}/goals",
+        json={
+            "goal_type": "emergency_fund",
+            "target_amount": "-500000.00",
+            "current_amount": "0.00",
+            "target_years": 2,
+            "priority": "high",
+        },
+        headers=headers,
+    )
+    assert invalid_res.status_code == 422

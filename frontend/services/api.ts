@@ -62,8 +62,25 @@ export async function apiClient<T>(
         tokenStorage.clear();
       }
 
+      let errorMessage = `API Request failed with status ${response.status}`;
+      if (typeof errorData?.detail === "string") {
+        errorMessage = errorData.detail;
+      } else if (Array.isArray(errorData?.detail)) {
+        errorMessage = errorData.detail
+          .map((e: any) => {
+            if (typeof e === "string") return e;
+            const field = Array.isArray(e.loc) ? e.loc.slice(1).join(".") : "";
+            return field ? `${field}: ${e.msg || JSON.stringify(e)}` : e.msg || JSON.stringify(e);
+          })
+          .join("; ");
+      } else if (errorData?.detail && typeof errorData.detail === "object") {
+        errorMessage = JSON.stringify(errorData.detail);
+      } else if (errorData?.message) {
+        errorMessage = typeof errorData.message === "string" ? errorData.message : JSON.stringify(errorData.message);
+      }
+
       throw new ApiError(
-        errorData?.detail || `API Request failed with status ${response.status}`,
+        errorMessage,
         response.status,
         errorData
       );
