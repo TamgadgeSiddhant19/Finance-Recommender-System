@@ -6,6 +6,7 @@ from app.api.v1.endpoints import (
     health,
     profile,
     rag,
+    recommendations,
     users,
 )
 
@@ -18,4 +19,6 @@ api_router.include_router(profile.router, tags=["Financial Profiles"])
 api_router.include_router(goals.router, tags=["Financial Goals"])
 api_router.include_router(analysis.router, tags=["Financial Analysis Engine"])
 api_router.include_router(financial_products.router, tags=["Financial Products & Market Data"])
+api_router.include_router(recommendations.router, tags=["Recommendation Engine"])
 api_router.include_router(rag.router, tags=["Financial Knowledge RAG"])
+

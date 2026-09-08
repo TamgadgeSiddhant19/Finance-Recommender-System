@@ -1,0 +1,340 @@
+from decimal import Decimal
+from typing import Any, Dict, List, Optional, Sequence, Union
+from sqlalchemy import desc, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
+from app.financial_data.models import FinancialProduct
+from app.financial_data.repository import FinancialProductRepository
+from app.financial_data.schemas import FinancialProductResponse
+
+from app.models.financial_goal import FinancialGoal
+from app.models.financial_profile import FinancialProfile
+from app.models.user import User
+from app.recommendations.allocation import generate_target_allocation
+from app.recommendations.filters import filter_eligible_products
+from app.recommendations.models import Recommendation, RecommendationItem
+from app.recommendations.portfolio import construct_portfolio
+from app.recommendations.schemas import (
+    PortfolioValidationReport,
+    ProductSelectionReason,
+    RecommendationHistoryItem,
+    RecommendationResponse,
+    RecommendedPortfolioItem,
+    TargetAllocationSummary,
+)
+
+from app.recommendations.scoring import score_product
+from app.recommendations.validators import validate_portfolio
+from app.schemas.financial_goal import FinancialGoalBase
+from app.schemas.financial_profile import FinancialProfileBase
+from app.services.risk_scoring import calculate_risk_assessment
+
+ProductTypeUnion = Union[FinancialProduct, FinancialProductResponse]
+GoalTypeUnion = Union[FinancialGoal, FinancialGoalBase]
+ProfileTypeUnion = Union[FinancialProfile, FinancialProfileBase]
+
+
+class RecommendationService:
+    """
+    Deterministic Financial Recommendation Engine orchestrator:
+    Combines profile data, risk profile, goal time-horizons, and product catalog
+    to construct explainable, validated investment portfolios.
+    """
+
+    @classmethod
+    def generate_recommendation(
+        cls,
+        profile: ProfileTypeUnion,
+        goals: Sequence[GoalTypeUnion] = (),
+        available_products: Sequence[ProductTypeUnion] = (),
+        user_id: Optional[int] = None,
+    ) -> RecommendationResponse:
+        """
+        Pure deterministic recommendation generator (Stateless).
+        """
+        # 1. Deterministic Multi-factor Risk Scoring
+        risk_result = calculate_risk_assessment(profile)
+        risk_category = risk_result.risk_category
+        risk_score = risk_result.risk_score
+        monthly_capacity = profile.monthly_investment_capacity
+        lump_sum_capacity = getattr(profile, "emergency_fund_current", Decimal("0.00"))
+
+        # 2. Target Asset Allocation
+        target_alloc = generate_target_allocation(
+            risk_category=risk_category,
+            goals=goals,
+        )
+
+        # 3. Product Eligibility Filtering
+        eligible_products, exclusions = filter_eligible_products(
+            products=available_products,
+            risk_category=risk_category,
+            investment_capacity=monthly_capacity,
+        )
+
+        eligible_ids = {p.id for p in eligible_products}
+
+        # 4. Deterministic Product Scoring
+        target_dict = {
+            "equity": target_alloc.equity_pct,
+            "debt": target_alloc.debt_pct,
+            "gold": target_alloc.gold_pct,
+            "cash": target_alloc.cash_pct,
+        }
+
+        scored_products: List[tuple] = []
+        for prod in eligible_products:
+            score, reasons = score_product(
+                product=prod,
+                user_risk_cat=risk_category,
+                monthly_capacity=monthly_capacity,
+                target_allocation_dict=target_dict,
+                goals=goals,
+            )
+            scored_products.append((prod, score, reasons))
+
+        # 5. Candidate Portfolio Construction
+        portfolio_items = construct_portfolio(
+            scored_products=scored_products,
+            target_allocation=target_alloc,
+            monthly_capacity=monthly_capacity,
+            lump_sum_capacity=Decimal("0.00"),
+        )
+
+        # 6. Portfolio Validation
+        validation_report = validate_portfolio(
+            portfolio_items=portfolio_items,
+            target_allocation=target_alloc,
+            monthly_capacity=monthly_capacity,
+            risk_category=risk_category,
+            eligible_product_ids=eligible_ids,
+        )
+
+        total_sip = sum((item.suggested_monthly_sip for item in portfolio_items), Decimal("0.00"))
+        total_lump_sum = sum((item.suggested_lump_sum for item in portfolio_items), Decimal("0.00"))
+
+        return RecommendationResponse(
+            recommendation_id=None,
+            user_id=user_id,
+            risk_category=risk_category,
+            risk_score=risk_score,
+            monthly_investment_capacity=monthly_capacity,
+            target_allocation=target_alloc,
+            portfolio_items=portfolio_items,
+            total_monthly_sip=total_sip,
+            total_lump_sum=total_lump_sum,
+            validation_report=validation_report,
+        )
+
+    @classmethod
+    async def generate_and_save_for_user(
+        cls,
+        db: AsyncSession,
+        user_id: int,
+    ) -> RecommendationResponse:
+        """
+        Loads user, profile, goals, and products from database,
+        computes recommendation, persists record, and returns response.
+        """
+        # 1. Fetch User
+        user_res = await db.execute(select(User).where(User.id == user_id))
+        user = user_res.scalar_one_or_none()
+        if not user:
+            raise ValueError(f"User with ID {user_id} not found.")
+
+        # 2. Fetch Profile
+        profile_res = await db.execute(
+            select(FinancialProfile).where(FinancialProfile.user_id == user_id)
+        )
+        profile = profile_res.scalar_one_or_none()
+        if not profile:
+            raise ValueError(f"Financial profile not found for user {user_id}.")
+
+        # 3. Fetch Goals
+        goals_res = await db.execute(
+            select(FinancialGoal).where(FinancialGoal.user_id == user_id).order_by(FinancialGoal.created_at.desc())
+        )
+        goals = list(goals_res.scalars().all())
+
+        # 4. Fetch Products Catalog
+        products_res = await db.execute(select(FinancialProduct))
+        products = list(products_res.scalars().all())
+
+        # 5. Generate Recommendation
+        rec_resp = cls.generate_recommendation(
+            profile=profile,
+            goals=goals,
+            available_products=products,
+            user_id=user_id,
+        )
+
+        # 6. Persist Recommendation to Database
+        db_rec = Recommendation(
+            user_id=user_id,
+            risk_category=rec_resp.risk_category,
+            risk_score=rec_resp.risk_score,
+            monthly_capacity=rec_resp.monthly_investment_capacity,
+            target_equity_pct=rec_resp.target_allocation.equity_pct,
+            target_debt_pct=rec_resp.target_allocation.debt_pct,
+            target_gold_pct=rec_resp.target_allocation.gold_pct,
+            target_cash_pct=rec_resp.target_allocation.cash_pct,
+            total_monthly_sip=rec_resp.total_monthly_sip,
+            total_lump_sum=rec_resp.total_lump_sum,
+            is_valid=rec_resp.validation_report.is_valid,
+            validation_details=rec_resp.validation_report.model_dump(mode="json"),
+        )
+        db.add(db_rec)
+        await db.flush()  # Populates db_rec.id
+
+        for item in rec_resp.portfolio_items:
+            reasons_json = [r.model_dump(mode="json") for r in item.selection_reasons]
+            db_item = RecommendationItem(
+                recommendation_id=db_rec.id,
+                financial_product_id=item.product_id,
+                symbol=item.symbol,
+                name=item.name,
+                product_type=item.product_type.value if hasattr(item.product_type, "value") else str(item.product_type),
+                asset_class=item.asset_class.value if hasattr(item.asset_class, "value") else str(item.asset_class),
+                risk_level=item.risk_level.value if hasattr(item.risk_level, "value") else str(item.risk_level),
+                suitability_score=item.suitability_score,
+                allocation_percentage=item.allocation_percentage,
+                monthly_sip_amount=item.suggested_monthly_sip,
+                lump_sum_amount=item.suggested_lump_sum,
+                selection_reasons=reasons_json,
+            )
+            db.add(db_item)
+
+        await db.commit()
+        await db.refresh(db_rec)
+
+        rec_resp.recommendation_id = db_rec.id
+        return rec_resp
+
+    @classmethod
+    async def get_user_recommendation_history(
+        cls,
+        db: AsyncSession,
+        user_id: int,
+        limit: int = 10,
+    ) -> List[RecommendationHistoryItem]:
+        """
+        Retrieves list of past recommendations for a user.
+        """
+        stmt = (
+            select(Recommendation)
+            .where(Recommendation.user_id == user_id)
+            .order_by(desc(Recommendation.created_at))
+            .limit(limit)
+        )
+        res = await db.execute(stmt)
+        records = res.scalars().all()
+        return [RecommendationHistoryItem.model_validate(r) for r in records]
+
+    @classmethod
+    async def get_recommendation_by_id(
+        cls,
+        db: AsyncSession,
+        user_id: int,
+        recommendation_id: int,
+    ) -> Optional[RecommendationResponse]:
+        """
+        Retrieves full details of a specific stored recommendation.
+        """
+        stmt = (
+            select(Recommendation)
+            .where(Recommendation.id == recommendation_id, Recommendation.user_id == user_id)
+            .options(selectinload(Recommendation.items))
+        )
+        res = await db.execute(stmt)
+        rec = res.scalar_one_or_none()
+        if not rec:
+            return None
+
+        portfolio_items: List[RecommendedPortfolioItem] = []
+        for it in rec.items:
+            reasons = [ProductSelectionReason(**r) for r in (it.selection_reasons or [])]
+            portfolio_items.append(
+                RecommendedPortfolioItem(
+                    product_id=it.financial_product_id,
+                    symbol=it.symbol,
+                    name=it.name,
+                    product_type=it.product_type,
+                    asset_class=it.asset_class,
+                    risk_level=it.risk_level,
+                    suitability_score=it.suitability_score,
+                    allocation_percentage=it.allocation_percentage,
+                    suggested_monthly_sip=it.monthly_sip_amount,
+                    suggested_lump_sum=it.lump_sum_amount,
+                    selection_reasons=reasons,
+                )
+            )
+
+        target_alloc = TargetAllocationSummary(
+            equity_pct=rec.target_equity_pct,
+            debt_pct=rec.target_debt_pct,
+            gold_pct=rec.target_gold_pct,
+            cash_pct=rec.target_cash_pct,
+        )
+
+        validation_report = rec.validation_details or {"is_valid": rec.is_valid, "checks": []}
+
+        return RecommendationResponse(
+            recommendation_id=rec.id,
+            user_id=rec.user_id,
+            risk_category=rec.risk_category,
+            risk_score=rec.risk_score,
+            monthly_investment_capacity=rec.monthly_capacity,
+            target_allocation=target_alloc,
+            portfolio_items=portfolio_items,
+            total_monthly_sip=rec.total_monthly_sip,
+            total_lump_sum=rec.total_lump_sum,
+            validation_report=validation_report,
+            created_at=rec.created_at,
+        )
+
+    @staticmethod
+    def prepare_rag_explanation_payload(
+        rec: RecommendationResponse,
+        profile: ProfileTypeUnion,
+        goals: Sequence[GoalTypeUnion] = (),
+    ) -> Dict[str, Any]:
+        """
+        Builds a structured contextual payload for downstream RAG / Gemini synthesis.
+        Ensures strict separation: deterministic engine provides all numbers and facts,
+        while the downstream LLM only provides natural-language narrative synthesis.
+        """
+        return {
+            "user_context": {
+                "user_id": rec.user_id,
+                "risk_profile": rec.risk_category,
+                "risk_score": rec.risk_score,
+                "monthly_surplus_inr": float(rec.monthly_investment_capacity),
+            },
+            "deterministic_target_allocation": {
+                "equity_pct": float(rec.target_allocation.equity_pct),
+                "debt_pct": float(rec.target_allocation.debt_pct),
+                "gold_pct": float(rec.target_allocation.gold_pct),
+                "cash_pct": float(rec.target_allocation.cash_pct),
+            },
+            "portfolio_instruments": [
+                {
+                    "symbol": item.symbol,
+                    "name": item.name,
+                    "asset_class": item.asset_class.value if hasattr(item.asset_class, "value") else str(item.asset_class),
+                    "allocation_pct": float(item.allocation_percentage),
+                    "monthly_sip_inr": float(item.suggested_monthly_sip),
+                    "suitability_score": float(item.suitability_score),
+                    "selection_reasons": [r.description for r in item.selection_reasons],
+                }
+                for item in rec.portfolio_items
+            ],
+            "goal_horizons": [
+                {
+                    "goal_type": g.goal_type.value if hasattr(g.goal_type, "value") else str(g.goal_type),
+                    "target_amount": float(g.target_amount),
+                    "target_years": g.target_years,
+                }
+                for g in goals
+            ],
+        }

@@ -21,15 +21,17 @@ export default function PortfolioPage() {
   useEffect(() => {
     async function loadCatalog() {
       const res = await productsService.getProducts();
-      setProducts(res.items);
+      setProducts(Array.isArray(res) ? res : []);
     }
     loadCatalog();
   }, []);
 
+  const safeProducts = Array.isArray(products) ? products : [];
   const filteredProducts =
     selectedAssetFilter === "all"
-      ? products
-      : products.filter((p) => p.asset_class.toLowerCase() === selectedAssetFilter.toLowerCase());
+      ? safeProducts
+      : safeProducts.filter((p) => p.asset_class?.toLowerCase() === selectedAssetFilter.toLowerCase());
+
 
   return (
     <div className="flex-1 flex min-h-[calc(100vh-4rem)]">

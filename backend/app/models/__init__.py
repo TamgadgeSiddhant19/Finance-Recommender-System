@@ -3,6 +3,7 @@ from app.models.financial_profile import FinancialProfile
 from app.models.financial_goal import FinancialGoal
 from app.financial_data.models import FinancialProduct, MarketData
 from app.rag.models import Document, DocumentChunk
+from app.recommendations.models import Recommendation, RecommendationItem
 
 __all__ = [
     "User",
@@ -12,4 +13,7 @@ __all__ = [
     "MarketData",
     "Document",
     "DocumentChunk",
+    "Recommendation",
+    "RecommendationItem",
 ]
+

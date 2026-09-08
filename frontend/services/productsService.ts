@@ -8,7 +8,7 @@ export const productsService = {
     product_type?: string;
     limit?: number;
     offset?: number;
-  }): Promise<{ items: FinancialProduct[]; total: number }> {
+  }): Promise<FinancialProduct[]> {
     try {
       const query = new URLSearchParams();
       if (params?.asset_class) query.append("asset_class", params.asset_class);
@@ -17,10 +17,18 @@ export const productsService = {
       if (params?.offset) query.append("offset", params.offset.toString());
 
       const url = `/financial-products?${query.toString()}`;
-      return await apiClient<{ items: FinancialProduct[]; total: number }>(url);
+      const res = await apiClient<FinancialProduct[] | { items: FinancialProduct[]; total: number }>(url);
+      
+      if (Array.isArray(res)) {
+        return res.length > 0 ? res : MOCK_PRODUCTS;
+      }
+      if (res && Array.isArray((res as any).items)) {
+        return (res as any).items.length > 0 ? (res as any).items : MOCK_PRODUCTS;
+      }
+      return MOCK_PRODUCTS;
     } catch (err: any) {
       console.warn("Using sample products catalog (backend error or offline):", err.message);
-      return { items: MOCK_PRODUCTS, total: MOCK_PRODUCTS.length };
+      return MOCK_PRODUCTS;
     }
   },
 
