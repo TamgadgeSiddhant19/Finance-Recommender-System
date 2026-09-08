@@ -43,6 +43,9 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
         await conn.run_sync(Base.metadata.drop_all)
 
 
+from app.auth.security import create_access_token
+
+
 @pytest_asyncio.fixture(scope="function")
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     """Provide an async test client with overridden get_db dependency."""
@@ -56,3 +59,10 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
         yield ac
 
     app.dependency_overrides.clear()
+
+
+def make_auth_headers(user_id: int) -> dict:
+    """Helper to generate Authorization Bearer headers for testing."""
+    token = create_access_token(user_id)
+    return {"Authorization": f"Bearer {token}"}
+

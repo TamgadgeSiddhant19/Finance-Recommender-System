@@ -19,11 +19,16 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Footer } from "@/components/layout/Footer";
+import { MarketOverviewBar } from "@/components/market/MarketOverviewBar";
 
 export default function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen">
+      {/* Live Market Bar from Upstox */}
+      <MarketOverviewBar />
+
       {/* Hero Section */}
+
       <section className="relative overflow-hidden pt-16 pb-20 lg:pt-24 lg:pb-32">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-950/30 via-slate-950/70 to-slate-950 -z-10" />
 

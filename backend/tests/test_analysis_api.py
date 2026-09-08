@@ -1,20 +1,26 @@
 import pytest
 from httpx import AsyncClient
 from app.core.config import settings
+from tests.conftest import make_auth_headers
 
 
 @pytest.mark.asyncio
 async def test_get_user_analysis_end_to_end(client: AsyncClient):
-    """Verify GET /api/v1/analysis/{user_id} produces comprehensive financial analysis."""
-    # 1. Create User
+    """Verify GET /api/v1/analysis/{user_id} produces comprehensive financial analysis for authenticated user."""
+    # 1. Unauthenticated request must return 401
+    unauth_res = await client.get(f"{settings.API_V1_STR}/analysis/1")
+    assert unauth_res.status_code == 401
+
+    # 2. Create User
     user_res = await client.post(
         f"{settings.API_V1_STR}/users",
         json={"email": "analysis_user@example.in", "password": "password123"},
     )
     assert user_res.status_code == 201
     user_id = user_res.json()["id"]
+    headers = make_auth_headers(user_id)
 
-    # 2. Create Profile
+    # 3. Create Profile
     profile_payload = {
         "user_id": user_id,
         "age": 32,
@@ -26,10 +32,10 @@ async def test_get_user_analysis_end_to_end(client: AsyncClient):
         "risk_tolerance": "moderate",
         "investment_experience": "intermediate",
     }
-    prof_res = await client.post(f"{settings.API_V1_STR}/profile", json=profile_payload)
+    prof_res = await client.post(f"{settings.API_V1_STR}/profile", json=profile_payload, headers=headers)
     assert prof_res.status_code == 201
 
-    # 3. Create Goal
+    # 4. Create Goal
     goal_payload = {
         "user_id": user_id,
         "goal_type": "house",
@@ -38,11 +44,11 @@ async def test_get_user_analysis_end_to_end(client: AsyncClient):
         "target_years": 8,
         "priority": "high",
     }
-    g_res = await client.post(f"{settings.API_V1_STR}/goals", json=goal_payload)
+    g_res = await client.post(f"{settings.API_V1_STR}/goals", json=goal_payload, headers=headers)
     assert g_res.status_code == 201
 
-    # 4. Request Analysis
-    analysis_res = await client.get(f"{settings.API_V1_STR}/analysis/{user_id}")
+    # 5. Request Analysis
+    analysis_res = await client.get(f"{settings.API_V1_STR}/analysis/{user_id}", headers=headers)
     assert analysis_res.status_code == 200
     data = analysis_res.json()
 
@@ -71,6 +77,11 @@ async def test_get_user_analysis_end_to_end(client: AsyncClient):
     assert goals_data["individual_goals"][0]["goal_type"] == "house"
     assert float(goals_data["total_required_monthly_sip"]) > 0
 
+    # 6. Request Analysis via /analysis/me
+    me_res = await client.get(f"{settings.API_V1_STR}/analysis/me", headers=headers)
+    assert me_res.status_code == 200
+    assert me_res.json()["user_id"] == user_id
+
 
 @pytest.mark.asyncio
 async def test_get_analysis_missing_profile(client: AsyncClient):
@@ -80,8 +91,9 @@ async def test_get_analysis_missing_profile(client: AsyncClient):
         json={"email": "noprofile@example.in", "password": "password123"},
     )
     user_id = user_res.json()["id"]
+    headers = make_auth_headers(user_id)
 
-    res = await client.get(f"{settings.API_V1_STR}/analysis/{user_id}")
+    res = await client.get(f"{settings.API_V1_STR}/analysis/{user_id}", headers=headers)
     assert res.status_code == 404
     assert "Financial profile not found" in res.json()["detail"]
 

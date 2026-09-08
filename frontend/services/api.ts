@@ -1,5 +1,7 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
 
+const TOKEN_STORAGE_KEY = "arthai_auth_token";
+
 export class ApiError extends Error {
   status: number;
   data: any;
@@ -12,15 +14,33 @@ export class ApiError extends Error {
   }
 }
 
+export const tokenStorage = {
+  get(): string | null {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem(TOKEN_STORAGE_KEY);
+  },
+  set(token: string) {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(TOKEN_STORAGE_KEY, token);
+  },
+  clear() {
+    if (typeof window === "undefined") return;
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+  },
+};
+
 export async function apiClient<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
   
-  const headers = {
+  const token = tokenStorage.get();
+
+  const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    ...(options.headers || {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...((options.headers as Record<string, string>) || {}),
   };
 
   try {
@@ -36,6 +56,12 @@ export async function apiClient<T>(
       } catch {
         errorData = { detail: response.statusText };
       }
+
+      // If token expired or unauthorized, clear token
+      if (response.status === 401 && token) {
+        tokenStorage.clear();
+      }
+
       throw new ApiError(
         errorData?.detail || `API Request failed with status ${response.status}`,
         response.status,
@@ -43,14 +69,19 @@ export async function apiClient<T>(
       );
     }
 
+    // Handle 204 No Content
+    if (response.status === 204) {
+      return {} as T;
+    }
+
     return (await response.json()) as T;
   } catch (error: any) {
     if (error instanceof ApiError) {
       throw error;
     }
-    // Network or connection error (e.g. backend offline)
+    // Network or connection error
     throw new ApiError(
-      error?.message || "Unable to reach the backend server. Using local cache.",
+      error?.message || "Unable to reach the backend server.",
       0,
       { isNetworkError: true }
     );

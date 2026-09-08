@@ -51,7 +51,15 @@ class Settings(BaseSettings):
                 url = url.replace("postgres://", "postgresql+asyncpg://", 1)
             elif url.startswith("postgresql://") and not url.startswith("postgresql+asyncpg://"):
                 url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+            # Normalize Neon / libpq query parameters for asyncpg
+            if "sslmode=" in url:
+                url = url.replace("sslmode=require", "ssl=require").replace("sslmode=verify-full", "ssl=require").replace("sslmode=prefer", "ssl=prefer")
+            if "channel_binding=" in url:
+                import re
+                url = re.sub(r"&?channel_binding=[^&]+", "", url)
+                url = url.replace("?&", "?").rstrip("?")
             return url
+
         values = info.data
         user = values.get("POSTGRES_USER", "postgres")
         password = values.get("POSTGRES_PASSWORD", "admin")
@@ -67,6 +75,15 @@ class Settings(BaseSettings):
     RAG_CHUNK_OVERLAP: int = 100
     RAG_DEFAULT_TOP_K: int = 4
 
+    # Authentication & Security
+    SECRET_KEY: str = "arthai_development_jwt_secret_key_change_in_production_987654321"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
+
+    # Upstox Market Data API Configuration
+    UPSTOX_ACCESS_TOKEN: Optional[str] = None
+    UPSTOX_API_BASE_URL: str = "https://api.upstox.com/v2"
+
     # Modular LLM Configuration
     LLM_PROVIDER: str = "mock"  # "mock" | "openai" | "gemini" | "ollama"
     OPENAI_API_KEY: Optional[str] = None
@@ -75,3 +92,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+

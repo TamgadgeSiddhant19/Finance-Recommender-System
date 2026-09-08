@@ -3,13 +3,15 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { UserProfile, FinancialGoal, FinancialAnalysisResponse } from "@/types";
 import { profileService, goalsService, analysisService } from "@/services";
-import { MOCK_USER_PROFILE, MOCK_GOALS, MOCK_ANALYSIS } from "@/lib/mockData";
 import { useToast } from "./useToast";
+import { useAuth } from "./useAuth";
 
 interface FinancialDataContextType {
-  profile: UserProfile;
+  profile: UserProfile | null;
   goals: FinancialGoal[];
-  analysis: FinancialAnalysisResponse;
+  analysis: FinancialAnalysisResponse | null;
+  hasProfile: boolean;
+  hasGoals: boolean;
   isLoading: boolean;
   isBackendConnected: boolean;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
@@ -20,120 +22,129 @@ interface FinancialDataContextType {
 const FinancialDataContext = createContext<FinancialDataContextType | undefined>(undefined);
 
 export function FinancialDataProvider({ children }: { children: React.ReactNode }) {
-  const [profile, setProfile] = useState<UserProfile>(MOCK_USER_PROFILE);
-  const [goals, setGoals] = useState<FinancialGoal[]>(MOCK_GOALS);
-  const [analysis, setAnalysis] = useState<FinancialAnalysisResponse>(MOCK_ANALYSIS);
+  const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [goals, setGoals] = useState<FinancialGoal[]>([]);
+  const [analysis, setAnalysis] = useState<FinancialAnalysisResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isBackendConnected, setIsBackendConnected] = useState<boolean>(false);
+  const [isBackendConnected, setIsBackendConnected] = useState<boolean>(true);
   const { toast } = useToast();
 
   const refreshAll = useCallback(async () => {
+    if (isAuthLoading) return;
+
+    if (!isAuthenticated) {
+      setProfile(null);
+      setGoals([]);
+      setAnalysis(null);
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     try {
+      // Authenticated user: fetch user's live Neon DB data via /profile/me, /goals/me, /analysis/me
       const [fetchedProfile, fetchedGoals, fetchedAnalysis] = await Promise.all([
-        profileService.getProfile(1),
-        goalsService.getGoals(1),
-        analysisService.getUserAnalysis(1),
+        profileService.getMyProfile(),
+        goalsService.getMyGoals(),
+        analysisService.getMyAnalysis(),
       ]);
 
       setProfile(fetchedProfile);
-      setGoals(fetchedGoals);
+      setGoals(fetchedGoals || []);
       setAnalysis(fetchedAnalysis);
       setIsBackendConnected(true);
     } catch (err: any) {
-      console.warn("Backend not available, active fallback enabled:", err.message);
+      console.warn("Failed to fetch live financial data:", err.message);
       setIsBackendConnected(false);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isAuthenticated, isAuthLoading]);
 
   useEffect(() => {
     refreshAll();
   }, [refreshAll]);
 
   const updateProfile = async (data: Partial<UserProfile>) => {
-    const updated = { ...profile, ...data };
-    setProfile(updated);
-
-    // Re-run simulation locally or via API
-    try {
-      const simulated = await analysisService.simulateAnalysis({
-        profile: {
-          age: updated.age,
-          monthly_income: updated.monthly_income,
-          monthly_expenses: updated.monthly_expenses,
-          total_savings: updated.total_savings,
-          monthly_investment_capacity: updated.monthly_investment_capacity,
-          total_debt: updated.total_debt,
-          risk_tolerance: updated.risk_tolerance,
-          investment_experience: updated.investment_experience,
-        },
-        goals: goals.map((g) => ({
-          goal_type: g.goal_type,
-          target_amount: g.target_amount,
-          current_amount: g.current_amount,
-          target_years: g.target_years,
-          priority: g.priority,
-        })),
+    if (!isAuthenticated) {
+      toast({
+        type: "error",
+        title: "Authentication Required",
+        description: "Please sign in to update your financial profile.",
       });
-      setAnalysis(simulated);
+      return;
+    }
+
+    try {
+      let savedProfile: UserProfile;
+      if (profile && profile.id) {
+        savedProfile = await profileService.updateMyProfile(data);
+      } else {
+        savedProfile = await profileService.createProfile({
+          age: Number(data.age ?? 30),
+          monthly_income: Number(data.monthly_income ?? 100000),
+          monthly_expenses: Number(data.monthly_expenses ?? 50000),
+          total_savings: Number(data.total_savings ?? 200000),
+          monthly_investment_capacity: Number(data.monthly_investment_capacity ?? (Number(data.monthly_income ?? 100000) - Number(data.monthly_expenses ?? 50000))),
+          total_debt: Number(data.total_debt ?? 0),
+          risk_tolerance: data.risk_tolerance ?? "MODERATE",
+          investment_experience: data.investment_experience ?? "INTERMEDIATE",
+        });
+      }
+      setProfile(savedProfile);
+
+      // Re-fetch analysis
+      const updatedAnalysis = await analysisService.getMyAnalysis();
+      setAnalysis(updatedAnalysis);
+
       toast({
         type: "success",
         title: "Profile Updated",
-        description: "Your risk score, health metrics, and asset allocation have been recalculated.",
+        description: "Your financial profile has been saved to your account and metrics recalculated.",
       });
     } catch (err: any) {
       toast({
-        type: "info",
-        title: "Profile Saved Locally",
-        description: "Metrics adjusted based on current parameters.",
+        type: "error",
+        title: "Update Failed",
+        description: err.message || "Failed to save financial profile.",
       });
     }
   };
 
   const addGoal = async (newGoalData: Omit<FinancialGoal, "id" | "created_at" | "updated_at">) => {
-    const newGoal: FinancialGoal = {
-      ...newGoalData,
-      id: goals.length + 1,
-      user_id: 1,
-      created_at: new Date().toISOString(),
-    };
-    const updatedGoals = [...goals, newGoal];
-    setGoals(updatedGoals);
-
-    // Recalculate analysis
-    try {
-      const simulated = await analysisService.simulateAnalysis({
-        profile: {
-          age: profile.age,
-          monthly_income: profile.monthly_income,
-          monthly_expenses: profile.monthly_expenses,
-          total_savings: profile.total_savings,
-          monthly_investment_capacity: profile.monthly_investment_capacity,
-          total_debt: profile.total_debt,
-          risk_tolerance: profile.risk_tolerance,
-          investment_experience: profile.investment_experience,
-        },
-        goals: updatedGoals.map((g) => ({
-          goal_type: g.goal_type,
-          target_amount: g.target_amount,
-          current_amount: g.current_amount,
-          target_years: g.target_years,
-          priority: g.priority,
-        })),
+    if (!isAuthenticated || !user) {
+      toast({
+        type: "error",
+        title: "Authentication Required",
+        description: "Please sign in to add financial goals.",
       });
-      setAnalysis(simulated);
+      return;
+    }
+
+    try {
+      const savedGoal = await goalsService.createGoal({
+        ...newGoalData,
+        user_id: user.id,
+      });
+
+      const updatedGoals = [...goals, savedGoal];
+      setGoals(updatedGoals);
+
+      // Re-fetch analysis with new goal
+      const updatedAnalysis = await analysisService.getMyAnalysis();
+      setAnalysis(updatedAnalysis);
+
       toast({
         type: "success",
         title: "New Goal Added",
-        description: `${newGoal.goal_type.replace(/_/g, " ")} goal has been incorporated into your roadmap.`,
+        description: `${savedGoal.goal_type.replace(/_/g, " ")} goal has been incorporated into your roadmap.`,
       });
-    } catch {
+    } catch (err: any) {
       toast({
-        type: "success",
-        title: "Goal Added",
-        description: "Your goal has been added to the tracking dashboard.",
+        type: "error",
+        title: "Goal Creation Failed",
+        description: err.message || "Unable to save goal to database.",
       });
     }
   };
@@ -144,7 +155,9 @@ export function FinancialDataProvider({ children }: { children: React.ReactNode 
         profile,
         goals,
         analysis,
-        isLoading,
+        hasProfile: profile !== null,
+        hasGoals: goals.length > 0,
+        isLoading: isLoading || isAuthLoading,
         isBackendConnected,
         updateProfile,
         addGoal,

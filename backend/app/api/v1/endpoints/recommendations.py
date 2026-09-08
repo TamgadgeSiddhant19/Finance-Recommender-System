@@ -1,9 +1,11 @@
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.dependencies import get_current_user, get_optional_current_user
 from app.database.session import get_db
 from app.financial_data.models import FinancialProduct
+from app.models.user import User
 from app.recommendations.schemas import (
     RecommendationHistoryItem,
     RecommendationResponse,
@@ -42,6 +44,48 @@ async def simulate_recommendation(
 
 
 @router.post(
+    "/recommendations/me",
+    response_model=RecommendationResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Generate and persist portfolio recommendation for currently authenticated user",
+)
+async def generate_my_recommendation(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> RecommendationResponse:
+    """
+    Generates and saves a validated recommendation for the authenticated user.
+    """
+    try:
+        return await RecommendationService.generate_and_save_for_user(db=db, user_id=current_user.id)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        )
+
+
+@router.get(
+    "/recommendations/me",
+    response_model=List[RecommendationHistoryItem],
+    summary="Retrieve recommendation history for currently authenticated user",
+)
+async def get_my_recommendation_history(
+    limit: int = Query(default=10, ge=1, le=50),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> List[RecommendationHistoryItem]:
+    """
+    Retrieves past recommendations for the authenticated user.
+    """
+    return await RecommendationService.get_user_recommendation_history(
+        db=db,
+        user_id=current_user.id,
+        limit=limit,
+    )
+
+
+@router.post(
     "/recommendations/{user_id}",
     response_model=RecommendationResponse,
     status_code=status.HTTP_201_CREATED,
@@ -49,13 +93,20 @@ async def simulate_recommendation(
 )
 async def generate_user_recommendation(
     user_id: int,
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> RecommendationResponse:
     """
     Evaluates the user's financial profile, goals, risk assessment, and available
     financial instruments to construct a 100% deterministic, explainable, and validated
-    investment portfolio recommendation, saving an audit trail in the database.
+    investment portfolio recommendation, saving an audit trail in the database with ownership check.
     """
+    if current_user.id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to generate recommendations for another user.",
+        )
+
     try:
         return await RecommendationService.generate_and_save_for_user(db=db, user_id=user_id)
     except ValueError as e:
@@ -78,11 +129,18 @@ async def generate_user_recommendation(
 async def get_user_recommendations(
     user_id: int,
     limit: int = Query(default=10, ge=1, le=50),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> List[RecommendationHistoryItem]:
     """
-    Retrieves summary records of historically generated portfolio recommendations for a user.
+    Retrieves summary records of historically generated portfolio recommendations for a user with ownership check.
     """
+    if current_user.id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to view another user's recommendations.",
+        )
+
     return await RecommendationService.get_user_recommendation_history(
         db=db,
         user_id=user_id,
@@ -98,12 +156,19 @@ async def get_user_recommendations(
 async def get_recommendation_by_id(
     user_id: int,
     recommendation_id: int,
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> RecommendationResponse:
     """
     Retrieves full details including selected instruments, weights, and selection rationales
-    for a specific saved recommendation.
+    for a specific saved recommendation with ownership check.
     """
+    if current_user.id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to view another user's recommendations.",
+        )
+
     rec = await RecommendationService.get_recommendation_by_id(
         db=db,
         user_id=user_id,
@@ -115,4 +180,3 @@ async def get_recommendation_by_id(
             detail=f"Recommendation with ID {recommendation_id} not found for user {user_id}.",
         )
     return rec
-

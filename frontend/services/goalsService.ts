@@ -1,18 +1,28 @@
 import { apiClient } from "./api";
 import { FinancialGoal } from "@/types";
-import { MOCK_GOALS } from "@/lib/mockData";
 
 export const goalsService = {
+  async getMyGoals(): Promise<FinancialGoal[]> {
+    try {
+      const goals = await apiClient<FinancialGoal[]>("/goals/me");
+      if (Array.isArray(goals)) {
+        return goals;
+      }
+      return [];
+    } catch (err: any) {
+      return [];
+    }
+  },
+
   async getGoals(userId: number = 1): Promise<FinancialGoal[]> {
     try {
       const goals = await apiClient<FinancialGoal[]>(`/goals/${userId}`);
-      if (goals && goals.length > 0) {
+      if (Array.isArray(goals)) {
         return goals;
       }
-      return MOCK_GOALS;
+      return [];
     } catch (err: any) {
-      console.warn("Using default goals (backend returned error or offline):", err.message);
-      return MOCK_GOALS;
+      return [];
     }
   },
 

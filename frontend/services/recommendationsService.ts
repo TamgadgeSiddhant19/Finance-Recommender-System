@@ -7,12 +7,28 @@ import {
 
 export const recommendationsService = {
   /**
+   * Generates and persists a deterministic recommendation for the authenticated user
+   */
+  async generateMyRecommendation(): Promise<RecommendationResponse> {
+    return apiClient<RecommendationResponse>("/recommendations/me", {
+      method: "POST",
+    });
+  },
+
+  /**
    * Generates and persists a deterministic recommendation for a user
    */
   async generateUserRecommendation(userId: number): Promise<RecommendationResponse> {
     return apiClient<RecommendationResponse>(`/recommendations/${userId}`, {
       method: "POST",
     });
+  },
+
+  /**
+   * Retrieves recommendation history for the authenticated user
+   */
+  async getMyRecommendationHistory(limit = 10): Promise<RecommendationHistoryItem[]> {
+    return apiClient<RecommendationHistoryItem[]>(`/recommendations/me?limit=${limit}`);
   },
 
   /**

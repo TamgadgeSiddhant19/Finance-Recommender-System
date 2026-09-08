@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/hooks/useToast";
+import { AuthProvider } from "@/hooks/useAuth";
 import { FinancialDataProvider } from "@/hooks/useFinancialData";
 import { Navbar } from "@/components/layout/Navbar";
 
@@ -25,10 +26,12 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={`${inter.className} bg-slate-950 text-slate-100 antialiased min-h-screen flex flex-col`}>
         <ToastProvider>
-          <FinancialDataProvider>
-            <Navbar />
-            <div className="flex-1 flex flex-col">{children}</div>
-          </FinancialDataProvider>
+          <AuthProvider>
+            <FinancialDataProvider>
+              <Navbar />
+              <div className="flex-1 flex flex-col">{children}</div>
+            </FinancialDataProvider>
+          </AuthProvider>
         </ToastProvider>
       </body>
     </html>

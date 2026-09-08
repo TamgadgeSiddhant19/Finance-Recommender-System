@@ -2,6 +2,8 @@ from decimal import Decimal
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
+from tests.conftest import make_auth_headers
+
 
 from app.financial_data.models import FinancialProduct
 from app.financial_data.schemas import (
@@ -399,8 +401,14 @@ async def test_recommendation_api_user_flow(client: AsyncClient, db_session: Asy
     db_session.add(goal)
     await db_session.commit()
 
-    # 5. Generate and Save Recommendation via POST
-    post_res = await client.post(f"/api/v1/recommendations/{user.id}")
+    # 5. Unauthenticated call must fail with 401
+    unauth_res = await client.post(f"/api/v1/recommendations/{user.id}")
+    assert unauth_res.status_code == 401
+
+    headers = make_auth_headers(user.id)
+
+    # 6. Generate and Save Recommendation via POST
+    post_res = await client.post(f"/api/v1/recommendations/{user.id}", headers=headers)
     assert post_res.status_code == 201
     post_data = post_res.json()
     assert post_data["user_id"] == user.id
@@ -408,17 +416,23 @@ async def test_recommendation_api_user_flow(client: AsyncClient, db_session: Asy
     assert post_data["risk_category"] in ["AGGRESSIVE", "VERY_AGGRESSIVE"]
     rec_id = post_data["recommendation_id"]
 
-    # 6. Retrieve History via GET /recommendations/{user_id}
-    history_res = await client.get(f"/api/v1/recommendations/{user.id}")
+    # 7. Retrieve History via GET /recommendations/{user_id}
+    history_res = await client.get(f"/api/v1/recommendations/{user.id}", headers=headers)
     assert history_res.status_code == 200
     history_data = history_res.json()
     assert len(history_data) >= 1
     assert history_data[0]["id"] == rec_id
 
-    # 7. Retrieve Detail via GET /recommendations/{user_id}/{rec_id}
-    detail_res = await client.get(f"/api/v1/recommendations/{user.id}/{rec_id}")
+    # 8. Retrieve Detail via GET /recommendations/{user_id}/{rec_id}
+    detail_res = await client.get(f"/api/v1/recommendations/{user.id}/{rec_id}", headers=headers)
     assert detail_res.status_code == 200
     detail_data = detail_res.json()
     assert detail_data["recommendation_id"] == rec_id
     assert len(detail_data["portfolio_items"]) > 0
     assert detail_data["validation_report"]["is_valid"] is True
+
+    # 9. Verify /recommendations/me
+    me_res = await client.get("/api/v1/recommendations/me", headers=headers)
+    assert me_res.status_code == 200
+    assert len(me_res.json()) >= 1
+
