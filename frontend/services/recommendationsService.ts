@@ -16,6 +16,18 @@ export const recommendationsService = {
   },
 
   /**
+   * Retrieves the most recent generated recommendation for the authenticated user
+   */
+  async getMyLatestRecommendation(): Promise<RecommendationResponse | null> {
+    try {
+      return await apiClient<RecommendationResponse>("/recommendations/me/latest");
+    } catch (err: any) {
+      return null;
+    }
+  },
+
+
+  /**
    * Generates and persists a deterministic recommendation for a user
    */
   async generateUserRecommendation(userId: number): Promise<RecommendationResponse> {

@@ -4,6 +4,7 @@ import "./globals.css";
 import { ToastProvider } from "@/hooks/useToast";
 import { AuthProvider } from "@/hooks/useAuth";
 import { FinancialDataProvider } from "@/hooks/useFinancialData";
+import { ThemeProvider } from "@/hooks/useTheme";
 import { Navbar } from "@/components/layout/Navbar";
 
 const inter = Inter({
@@ -23,16 +24,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${inter.className} bg-slate-950 text-slate-100 antialiased min-h-screen flex flex-col`}>
-        <ToastProvider>
-          <AuthProvider>
-            <FinancialDataProvider>
-              <Navbar />
-              <div className="flex-1 flex flex-col">{children}</div>
-            </FinancialDataProvider>
-          </AuthProvider>
-        </ToastProvider>
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <body className={`${inter.className} bg-background text-foreground antialiased min-h-screen flex flex-col transition-colors duration-200`}>
+        <ThemeProvider>
+          <ToastProvider>
+            <AuthProvider>
+              <FinancialDataProvider>
+                <Navbar />
+                <div className="flex-1 flex flex-col">{children}</div>
+              </FinancialDataProvider>
+            </AuthProvider>
+          </ToastProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

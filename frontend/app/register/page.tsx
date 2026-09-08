@@ -60,30 +60,30 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex-1 flex items-center justify-center min-h-[calc(100vh-4rem)] p-4 sm:p-6 lg:p-8 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+    <div className="flex-1 flex items-center justify-center min-h-[calc(100vh-4rem)] p-4 sm:p-6 lg:p-8 bg-gradient-to-b from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 transition-colors">
       <div className="w-full max-w-md space-y-6">
         {/* Branding header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-600 shadow-lg shadow-emerald-950 text-white font-bold text-xl mx-auto">
+          <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-600 shadow-md text-white font-bold text-xl mx-auto">
             <TrendingUp className="w-6 h-6 text-white" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">
-            Create Your Artha<span className="text-emerald-400">AI</span> Account
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            Create Your Artha<span className="text-emerald-600 dark:text-emerald-400">AI</span> Account
           </h1>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             Join the SEBI-aligned deterministic personal finance platform
           </p>
         </div>
 
         {/* Registration Card */}
-        <Card className="border-slate-800 bg-slate-900/90 shadow-2xl backdrop-blur-sm">
+        <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 shadow-xs dark:shadow-2xl backdrop-blur-sm">
           <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-lg font-semibold text-slate-100 flex items-center gap-2">
-              <UserIcon className="w-4 h-4 text-emerald-400" />
+            <CardTitle className="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <UserIcon className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               Get Started in Minutes
             </CardTitle>
-            <CardDescription className="text-xs text-slate-400">
-              Set up your profile to track net worth, goals & tailored asset allocations
+            <CardDescription className="text-xs text-slate-500 dark:text-slate-400">
+              Set up your profile to track net worth, goals &amp; tailored asset allocations
             </CardDescription>
           </CardHeader>
 

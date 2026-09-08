@@ -20,7 +20,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <div className="w-full space-y-1.5">
         {label && (
-          <label htmlFor={selectId} className="block text-xs font-medium text-slate-300">
+          <label htmlFor={selectId} className="block text-xs font-medium text-slate-700 dark:text-slate-300">
             {label}
           </label>
         )}
@@ -28,20 +28,20 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
           id={selectId}
           ref={ref}
           className={cn(
-            "block w-full rounded-lg bg-slate-900/90 border border-slate-700/80 px-3 py-2 text-sm text-slate-100 transition-colors focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer",
+            "block w-full rounded-lg bg-white dark:bg-slate-900/90 border border-slate-300 dark:border-slate-700/80 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 transition-colors focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer shadow-2xs",
             error && "border-rose-500 focus:border-rose-500 focus:ring-rose-500",
             className
           )}
           {...props}
         >
           {options.map((opt) => (
-            <option key={opt.value} value={opt.value} className="bg-slate-900 text-slate-100">
+            <option key={opt.value} value={opt.value} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
               {opt.label}
             </option>
           ))}
         </select>
-        {error && <p className="text-xs text-rose-400 mt-1">{error}</p>}
-        {helperText && !error && <p className="text-xs text-slate-400 mt-1">{helperText}</p>}
+        {error && <p className="text-xs text-rose-600 dark:text-rose-400 mt-1">{error}</p>}
+        {helperText && !error && <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{helperText}</p>}
       </div>
     );
   }

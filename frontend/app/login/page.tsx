@@ -45,18 +45,18 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex-1 flex items-center justify-center min-h-[calc(100vh-4rem)] p-4 sm:p-6 lg:p-8 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+    <div className="flex-1 flex items-center justify-center min-h-[calc(100vh-4rem)] p-4 sm:p-6 lg:p-8 bg-gradient-to-b from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 transition-colors">
       <div className="w-full max-w-md space-y-6">
         {/* Branding header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-600 shadow-lg shadow-emerald-950 text-white font-bold text-xl mx-auto">
+          <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-600 shadow-md text-white font-bold text-xl mx-auto">
             <TrendingUp className="w-6 h-6 text-white" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">
-            Welcome to Artha<span className="text-emerald-400">AI</span>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            Welcome to Artha<span className="text-emerald-600 dark:text-emerald-400">AI</span>
           </h1>
-          <p className="text-xs text-slate-400">
-            Sign in to access your personal finance dashboard & recommendations
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Sign in to access your personal finance dashboard &amp; recommendations
           </p>
         </div>
 

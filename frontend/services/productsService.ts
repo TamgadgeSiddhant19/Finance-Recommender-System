@@ -1,6 +1,5 @@
 import { apiClient } from "./api";
 import { FinancialProduct } from "@/types";
-import { MOCK_PRODUCTS } from "@/lib/mockData";
 
 export const productsService = {
   async getProducts(params?: {
@@ -20,15 +19,15 @@ export const productsService = {
       const res = await apiClient<FinancialProduct[] | { items: FinancialProduct[]; total: number }>(url);
       
       if (Array.isArray(res)) {
-        return res.length > 0 ? res : MOCK_PRODUCTS;
+        return res;
       }
       if (res && Array.isArray((res as any).items)) {
-        return (res as any).items.length > 0 ? (res as any).items : MOCK_PRODUCTS;
+        return (res as any).items;
       }
-      return MOCK_PRODUCTS;
+      return [];
     } catch (err: any) {
-      console.warn("Using sample products catalog (backend error or offline):", err.message);
-      return MOCK_PRODUCTS;
+      console.warn("Could not load products catalog from backend:", err.message);
+      return [];
     }
   },
 

@@ -89,14 +89,14 @@ function RiskContent() {
     <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">Multi-Factor Risk Assessment</h1>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Multi-Factor Risk Assessment</h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             Deterministic 0–100 scoring based on capacity, liquid runway, self-declared tolerance, and investment horizon.
           </p>
         </div>
 
         <Link href="/recommendations">
-          <Button size="sm" className="gap-1.5">
+          <Button size="sm" className="gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white">
             View Aligned Portfolio <ArrowRight className="w-3.5 h-3.5" />
           </Button>
         </Link>
@@ -105,13 +105,13 @@ function RiskContent() {
       {/* Hero Score Visualizer */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Main Score Gauge */}
-        <Card className="lg:col-span-5 flex flex-col justify-center items-center text-center p-8 bg-gradient-to-b from-slate-900 to-slate-950 border-emerald-500/30">
+        <Card className="lg:col-span-5 flex flex-col justify-center items-center text-center p-8 bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-950 border-emerald-500/30">
           <div className="relative flex items-center justify-center mb-4">
-            <div className="w-44 h-44 rounded-full border-4 border-slate-800 flex flex-col items-center justify-center p-4 bg-slate-950/80 shadow-inner">
-              <span className="text-4xl font-extrabold text-white tracking-tight">
+            <div className="w-44 h-44 rounded-full border-4 border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center p-4 bg-white dark:bg-slate-950/80 shadow-inner">
+              <span className="text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
                 {risk.risk_score}
               </span>
-              <span className="text-xs text-slate-400 font-medium mt-1">/ 100 Score</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">/ 100 Score</span>
               <Badge
                 variant={
                   risk.risk_category === "CONSERVATIVE"
@@ -128,10 +128,10 @@ function RiskContent() {
             </div>
           </div>
 
-          <h3 className="text-lg font-bold text-slate-100">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
             {risk.risk_category} Risk Category
           </h3>
-          <p className="text-xs text-slate-400 mt-2 leading-relaxed max-w-xs">
+          <p className="text-xs text-slate-600 dark:text-slate-400 mt-2 leading-relaxed max-w-xs">
             Balanced tolerance for equity market cycles, anchored by liquid cash buffers and institutional debt allocations.
           </p>
         </Card>

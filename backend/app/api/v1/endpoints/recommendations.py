@@ -85,6 +85,43 @@ async def get_my_recommendation_history(
     )
 
 
+@router.get(
+
+    "/recommendations/me/latest",
+    response_model=RecommendationResponse,
+    summary="Retrieve latest generated recommendation for currently authenticated user",
+)
+async def get_my_latest_recommendation(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> RecommendationResponse:
+    """
+    Retrieves the most recently generated recommendation for the authenticated user.
+    """
+    history = await RecommendationService.get_user_recommendation_history(
+        db=db,
+        user_id=current_user.id,
+        limit=1,
+    )
+    if not history:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No recommendation has been generated yet for this account.",
+        )
+    rec = await RecommendationService.get_recommendation_by_id(
+        db=db,
+        user_id=current_user.id,
+        recommendation_id=history[0].id,
+    )
+    if not rec:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Latest recommendation details could not be loaded.",
+        )
+    return rec
+
+
+
 @router.post(
     "/recommendations/{user_id}",
     response_model=RecommendationResponse,

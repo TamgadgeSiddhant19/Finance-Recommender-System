@@ -1,8 +1,8 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { UserProfile, FinancialGoal, FinancialAnalysisResponse } from "@/types";
-import { profileService, goalsService, analysisService } from "@/services";
+import { UserProfile, FinancialGoal, FinancialAnalysisResponse, RecommendationResponse } from "@/types";
+import { profileService, goalsService, analysisService, recommendationsService } from "@/services";
 import { useToast } from "./useToast";
 import { useAuth } from "./useAuth";
 
@@ -10,12 +10,15 @@ interface FinancialDataContextType {
   profile: UserProfile | null;
   goals: FinancialGoal[];
   analysis: FinancialAnalysisResponse | null;
+  recommendation: RecommendationResponse | null;
   hasProfile: boolean;
   hasGoals: boolean;
+  hasRecommendation: boolean;
   isLoading: boolean;
   isBackendConnected: boolean;
-  updateProfile: (data: Partial<UserProfile>) => Promise<void>;
+  updateProfile: (data: Omit<UserProfile, "id" | "created_at" | "updated_at"> | Partial<UserProfile>) => Promise<UserProfile | null>;
   addGoal: (goal: Omit<FinancialGoal, "id" | "created_at" | "updated_at">) => Promise<void>;
+  generateRecommendation: () => Promise<RecommendationResponse | null>;
   refreshAll: () => Promise<void>;
 }
 
@@ -26,6 +29,7 @@ export function FinancialDataProvider({ children }: { children: React.ReactNode 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [goals, setGoals] = useState<FinancialGoal[]>([]);
   const [analysis, setAnalysis] = useState<FinancialAnalysisResponse | null>(null);
+  const [recommendation, setRecommendation] = useState<RecommendationResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isBackendConnected, setIsBackendConnected] = useState<boolean>(true);
   const { toast } = useToast();
@@ -37,22 +41,25 @@ export function FinancialDataProvider({ children }: { children: React.ReactNode 
       setProfile(null);
       setGoals([]);
       setAnalysis(null);
+      setRecommendation(null);
       setIsLoading(false);
       return;
     }
 
     setIsLoading(true);
     try {
-      // Authenticated user: fetch user's live Neon DB data via /profile/me, /goals/me, /analysis/me
-      const [fetchedProfile, fetchedGoals, fetchedAnalysis] = await Promise.all([
+      // Authenticated user: fetch user's live Neon DB data via /profile/me, /goals/me, /analysis/me, /recommendations/me/latest
+      const [fetchedProfile, fetchedGoals, fetchedAnalysis, fetchedRec] = await Promise.all([
         profileService.getMyProfile(),
         goalsService.getMyGoals(),
         analysisService.getMyAnalysis(),
+        recommendationsService.getMyLatestRecommendation(),
       ]);
 
       setProfile(fetchedProfile);
       setGoals(fetchedGoals || []);
       setAnalysis(fetchedAnalysis);
+      setRecommendation(fetchedRec);
       setIsBackendConnected(true);
     } catch (err: any) {
       console.warn("Failed to fetch live financial data:", err.message);
@@ -66,14 +73,14 @@ export function FinancialDataProvider({ children }: { children: React.ReactNode 
     refreshAll();
   }, [refreshAll]);
 
-  const updateProfile = async (data: Partial<UserProfile>) => {
+  const updateProfile = async (data: any): Promise<UserProfile | null> => {
     if (!isAuthenticated) {
       toast({
         type: "error",
         title: "Authentication Required",
         description: "Please sign in to update your financial profile.",
       });
-      return;
+      return null;
     }
 
     try {
@@ -82,33 +89,35 @@ export function FinancialDataProvider({ children }: { children: React.ReactNode 
         savedProfile = await profileService.updateMyProfile(data);
       } else {
         savedProfile = await profileService.createProfile({
-          age: Number(data.age ?? 30),
-          monthly_income: Number(data.monthly_income ?? 100000),
-          monthly_expenses: Number(data.monthly_expenses ?? 50000),
-          total_savings: Number(data.total_savings ?? 200000),
-          monthly_investment_capacity: Number(data.monthly_investment_capacity ?? (Number(data.monthly_income ?? 100000) - Number(data.monthly_expenses ?? 50000))),
-          total_debt: Number(data.total_debt ?? 0),
-          risk_tolerance: data.risk_tolerance ?? "MODERATE",
-          investment_experience: data.investment_experience ?? "INTERMEDIATE",
+          age: Number(data.age),
+          monthly_income: Number(data.monthly_income),
+          monthly_expenses: Number(data.monthly_expenses),
+          total_savings: Number(data.total_savings),
+          monthly_investment_capacity: Number(data.monthly_investment_capacity),
+          total_debt: Number(data.total_debt || 0),
+          risk_tolerance: data.risk_tolerance || "MODERATE",
+          investment_experience: data.investment_experience || "INTERMEDIATE",
         });
       }
       setProfile(savedProfile);
 
-      // Re-fetch analysis
+      // Re-fetch real backend analysis
       const updatedAnalysis = await analysisService.getMyAnalysis();
       setAnalysis(updatedAnalysis);
 
       toast({
         type: "success",
-        title: "Profile Updated",
+        title: "Profile Saved",
         description: "Your financial profile has been saved to your account and metrics recalculated.",
       });
+      return savedProfile;
     } catch (err: any) {
       toast({
         type: "error",
-        title: "Update Failed",
+        title: "Save Failed",
         description: err.message || "Failed to save financial profile.",
       });
+      throw err;
     }
   };
 
@@ -131,7 +140,7 @@ export function FinancialDataProvider({ children }: { children: React.ReactNode 
       const updatedGoals = [...goals, savedGoal];
       setGoals(updatedGoals);
 
-      // Re-fetch analysis with new goal
+      // Re-fetch real backend analysis
       const updatedAnalysis = await analysisService.getMyAnalysis();
       setAnalysis(updatedAnalysis);
 
@@ -146,6 +155,36 @@ export function FinancialDataProvider({ children }: { children: React.ReactNode 
         title: "Goal Creation Failed",
         description: err.message || "Unable to save goal to database.",
       });
+      throw err;
+    }
+  };
+
+  const generateRecommendation = async (): Promise<RecommendationResponse | null> => {
+    if (!isAuthenticated) {
+      toast({
+        type: "error",
+        title: "Authentication Required",
+        description: "Please sign in to generate portfolio recommendations.",
+      });
+      return null;
+    }
+
+    try {
+      const rec = await recommendationsService.generateMyRecommendation();
+      setRecommendation(rec);
+      toast({
+        type: "success",
+        title: "Recommendation Generated",
+        description: "Your official SEBI-aligned investment roadmap has been generated and saved.",
+      });
+      return rec;
+    } catch (err: any) {
+      toast({
+        type: "error",
+        title: "Generation Failed",
+        description: err.message || "Unable to generate recommendation. Please ensure profile and goals are complete.",
+      });
+      throw err;
     }
   };
 
@@ -155,12 +194,15 @@ export function FinancialDataProvider({ children }: { children: React.ReactNode 
         profile,
         goals,
         analysis,
+        recommendation,
         hasProfile: profile !== null,
         hasGoals: goals.length > 0,
+        hasRecommendation: recommendation !== null,
         isLoading: isLoading || isAuthLoading,
         isBackendConnected,
         updateProfile,
         addGoal,
+        generateRecommendation,
         refreshAll,
       }}
     >

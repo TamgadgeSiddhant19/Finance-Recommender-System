@@ -94,18 +94,18 @@ function PortfolioContent() {
     <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">Target Portfolio Allocation Matrix</h1>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Target Portfolio Allocation Matrix</h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             SEBI-aligned multi-asset framework balanced across Equities, Debt, Gold, and Liquid Cash.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <span className="text-xs text-slate-400">
-            Total Recommended Monthly SIP: <strong className="text-emerald-400 font-bold">{formatINR(allocation.total_monthly_sip)}</strong>
+          <span className="text-xs text-slate-500 dark:text-slate-400">
+            Total Recommended Monthly SIP: <strong className="text-emerald-700 dark:text-emerald-400 font-bold">{formatINR(allocation.total_monthly_sip)}</strong>
           </span>
           <Link href="/recommendations">
-            <Button size="sm">
+            <Button size="sm" className="bg-emerald-600 hover:bg-emerald-500 text-white">
               View Advice Report
             </Button>
           </Link>

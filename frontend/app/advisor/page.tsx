@@ -100,13 +100,13 @@ export default function AdvisorPage() {
 
       <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto flex flex-col space-y-4">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-200 dark:border-slate-800">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-              <Sparkles className="w-6 h-6 text-emerald-400" />
-              AI Regulatory & Financial Advisor
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+              <Sparkles className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+              AI Regulatory &amp; Financial Advisor
             </h1>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               Grounded on official Indian statutory documents (SEBI, RBI, CBDT, PFRDA) using dense vector RAG.
             </p>
           </div>
@@ -124,7 +124,7 @@ export default function AdvisorPage() {
         </div>
 
         {/* Chat Message Window */}
-        <Card className="flex-1 flex flex-col min-h-[500px] max-h-[680px] overflow-hidden bg-slate-950/70 border-slate-800">
+        <Card className="flex-1 flex flex-col min-h-[500px] max-h-[680px] overflow-hidden bg-white dark:bg-slate-950/70 border-slate-200 dark:border-slate-800 shadow-xs">
           <CardContent className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
             {messages.map((msg) => {
               const isUser = msg.sender === "user";
@@ -138,7 +138,7 @@ export default function AdvisorPage() {
                     className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-xs font-bold ${
                       isUser
                         ? "bg-emerald-600 text-white"
-                        : "bg-slate-800 text-emerald-400 border border-emerald-500/30"
+                        : "bg-emerald-50 dark:bg-slate-800 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30"
                     }`}
                   >
                     {isUser ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
@@ -148,8 +148,8 @@ export default function AdvisorPage() {
                     <div
                       className={`p-4 rounded-2xl text-xs sm:text-sm leading-relaxed ${
                         isUser
-                          ? "bg-emerald-600 text-white rounded-tr-none"
-                          : "bg-slate-900 border border-slate-800 text-slate-200 rounded-tl-none shadow-md"
+                          ? "bg-emerald-600 text-white rounded-tr-none shadow-xs"
+                          : "bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded-tl-none shadow-2xs"
                       }`}
                     >
                       <div className="whitespace-pre-wrap">{msg.content}</div>
@@ -158,26 +158,26 @@ export default function AdvisorPage() {
                     {/* Source Citations Section */}
                     {msg.sources && msg.sources.length > 0 && (
                       <div className="space-y-1.5 pt-1">
-                        <p className="text-[11px] font-semibold text-slate-400 flex items-center gap-1">
-                          <Building2 className="w-3 h-3 text-sky-400" />
+                        <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 flex items-center gap-1">
+                          <Building2 className="w-3 h-3 text-sky-600 dark:text-sky-400" />
                           Retrieved Regulatory Sources ({msg.sources.length}):
                         </p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           {msg.sources.map((src, sIdx) => (
                             <div
                               key={sIdx}
-                              className="p-2.5 rounded-lg bg-slate-900/90 border border-slate-800 text-[11px] text-slate-300 space-y-1"
+                              className="p-2.5 rounded-lg bg-slate-100/80 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-700 dark:text-slate-300 space-y-1"
                             >
                               <div className="flex items-center justify-between">
-                                <span className="font-semibold text-emerald-300 truncate">
+                                <span className="font-semibold text-emerald-700 dark:text-emerald-300 truncate">
                                   {src.organization}
                                 </span>
-                                <span className="text-[10px] text-sky-400 font-mono">
+                                <span className="text-[10px] text-sky-700 dark:text-sky-400 font-mono">
                                   {Math.round(src.similarity_score * 100)}% match
                                 </span>
                               </div>
-                              <p className="text-slate-400 truncate text-[10px]">{src.document_title}</p>
-                              <p className="text-slate-300 line-clamp-2 italic text-[10px] pt-0.5">
+                              <p className="text-slate-500 dark:text-slate-400 truncate text-[10px]">{src.document_title}</p>
+                              <p className="text-slate-700 dark:text-slate-300 line-clamp-2 italic text-[10px] pt-0.5">
                                 &ldquo;{src.content}&rdquo;
                               </p>
                             </div>
@@ -192,12 +192,12 @@ export default function AdvisorPage() {
 
             {isLoading && (
               <div className="flex gap-3 max-w-3xl mr-auto">
-                <div className="w-8 h-8 rounded-full bg-slate-800 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30 flex items-center justify-center shrink-0">
                   <Bot className="w-4 h-4 animate-pulse" />
                 </div>
-                <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-slate-400 text-xs rounded-tl-none flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                  Retrieving regulatory vector chunks & synthesizing grounded response...
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 text-xs rounded-tl-none flex items-center gap-2 shadow-2xs">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                  Retrieving regulatory vector chunks &amp; synthesizing grounded response...
                 </div>
               </div>
             )}
@@ -206,17 +206,17 @@ export default function AdvisorPage() {
           </CardContent>
 
           {/* Quick Suggested Prompts */}
-          <div className="p-3 border-t border-slate-800/80 bg-slate-950/90">
+          <div className="p-3 border-t border-slate-200 dark:border-slate-800/80 bg-slate-50/90 dark:bg-slate-950/90">
             <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none">
-              <span className="text-[10px] font-semibold text-slate-400 shrink-0 flex items-center gap-1 mr-1">
-                <HelpCircle className="w-3 h-3 text-emerald-400" />
+              <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 shrink-0 flex items-center gap-1 mr-1">
+                <HelpCircle className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                 Suggested:
               </span>
               {SUGGESTED_PROMPTS.map((prompt, pIdx) => (
                 <button
                   key={pIdx}
                   onClick={() => handleSendMessage(prompt)}
-                  className="shrink-0 text-[11px] px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-emerald-300 border border-slate-800 transition-colors cursor-pointer"
+                  className="shrink-0 text-[11px] px-2.5 py-1 rounded-full bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-emerald-700 dark:hover:text-emerald-300 border border-slate-200 dark:border-slate-800 transition-colors cursor-pointer shadow-2xs"
                 >
                   {prompt.length > 45 ? `${prompt.substring(0, 45)}...` : prompt}
                 </button>
@@ -237,9 +237,9 @@ export default function AdvisorPage() {
                 value={inputQuery}
                 onChange={(e) => setInputQuery(e.target.value)}
                 disabled={isLoading}
-                className="flex-1 rounded-lg bg-slate-900 border border-slate-700/80 px-4 py-2.5 text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className="flex-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700/80 px-4 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 shadow-2xs"
               />
-              <Button type="submit" disabled={!inputQuery.trim() || isLoading} className="gap-1.5 px-4 shrink-0">
+              <Button type="submit" disabled={!inputQuery.trim() || isLoading} className="gap-1.5 px-4 shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white">
                 <Send className="w-4 h-4" />
                 <span className="hidden sm:inline">Ask</span>
               </Button>

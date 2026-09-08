@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -8,11 +9,28 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
 import { Progress } from "@/components/ui/Progress";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { useFinancialData } from "@/hooks/useFinancialData";
 import { GoalType, GoalPriority } from "@/types";
 import { formatINR } from "@/lib/utils";
-import { Target, Plus, ShieldCheck, Clock, X, Sparkles } from "lucide-react";
+import { Target, Plus, ShieldCheck, Clock, X, Sparkles, UserPlus } from "lucide-react";
+
+interface GoalFormState {
+  goal_type: GoalType;
+  target_amount: string | number;
+  current_amount: string | number;
+  target_years: string | number;
+  priority: GoalPriority;
+}
+
+const EMPTY_GOAL_FORM: GoalFormState = {
+  goal_type: "RETIREMENT",
+  target_amount: "",
+  current_amount: "0",
+  target_years: "",
+  priority: "HIGH",
+};
 
 export default function GoalsPage() {
   return (
@@ -27,63 +45,119 @@ export default function GoalsPage() {
 }
 
 function GoalsContent() {
-  const { goals, addGoal, analysis } = useFinancialData();
+  const { goals, addGoal, analysis, hasProfile, isLoading } = useFinancialData();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [newGoal, setNewGoal] = useState<GoalFormState>(EMPTY_GOAL_FORM);
+  const [formError, setFormError] = useState<string | null>(null);
 
-  const [newGoal, setNewGoal] = useState<{
-    goal_type: GoalType;
-    target_amount: number;
-    current_amount: number;
-    target_years: number;
-    priority: GoalPriority;
-  }>({
-    goal_type: "RETIREMENT",
-    target_amount: 10000000,
-    current_amount: 500000,
-    target_years: 15,
-    priority: "HIGH",
-  });
+  const handleOpenModal = () => {
+    setNewGoal(EMPTY_GOAL_FORM);
+    setFormError(null);
+    setIsModalOpen(true);
+  };
 
   const handleCreateGoal = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
+
+    const targetAmount = parseFloat(String(newGoal.target_amount));
+    const currentAmount = parseFloat(String(newGoal.current_amount)) || 0;
+    const targetYears = parseInt(String(newGoal.target_years));
+
+    if (isNaN(targetAmount) || targetAmount <= 0) {
+      setFormError("Target corpus amount must be greater than ₹0.");
+      return;
+    }
+
+    if (currentAmount < 0) {
+      setFormError("Current accumulated amount cannot be negative.");
+      return;
+    }
+
+    if (currentAmount >= targetAmount) {
+      setFormError("Target amount should be greater than currently accumulated amount.");
+      return;
+    }
+
+    if (isNaN(targetYears) || targetYears < 1 || targetYears > 50) {
+      setFormError("Target timeline must be between 1 and 50 years.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      await addGoal(newGoal);
+      await addGoal({
+        goal_type: newGoal.goal_type,
+        target_amount: targetAmount,
+        current_amount: currentAmount,
+        target_years: targetYears,
+        priority: newGoal.priority,
+      });
       setIsModalOpen(false);
+      setNewGoal(EMPTY_GOAL_FORM);
+    } catch (err: any) {
+      setFormError(err.message || "Failed to create goal. Please check your inputs.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  if (isLoading) {
+    return (
+      <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
+        <Skeleton className="h-8 w-64" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Skeleton className="h-64 rounded-xl" />
+          <Skeleton className="h-64 rounded-xl" />
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">Financial Goals & Compounding Roadmap</h1>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Track progress, required SIP amounts, and feasibility calculations for your life goals.
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Financial Goals &amp; Compounding Roadmap</h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Track progress, required SIP amounts, and compounding feasibility calculations for your life goals.
           </p>
         </div>
-        <Button onClick={() => setIsModalOpen(true)} className="gap-2 bg-emerald-600 hover:bg-emerald-500 text-white">
+        <Button onClick={handleOpenModal} className="gap-2 bg-emerald-600 hover:bg-emerald-500 text-white">
           <Plus className="w-4 h-4" /> Add Financial Goal
         </Button>
       </div>
 
-      {/* If No Goals */}
+      {/* If User has no Profile yet */}
+      {!hasProfile && (
+        <Card className="p-4 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 flex items-center justify-between gap-4 text-xs text-amber-900 dark:text-amber-200">
+          <div className="flex items-center gap-2">
+            <UserPlus className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+            <span>Complete your financial profile to calculate exact monthly SIP requirements for your goals.</span>
+          </div>
+          <Link href="/profile">
+            <Button size="sm" variant="outline" className="text-xs shrink-0 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-500/40 hover:bg-amber-100 dark:hover:bg-amber-500/20">
+              Set Up Profile
+            </Button>
+          </Link>
+        </Card>
+      )}
+
+      {/* If No Goals in Neon */}
       {goals.length === 0 ? (
-        <Card className="p-8 text-center space-y-4 border-dashed border-slate-700 bg-slate-900/40">
-          <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mx-auto">
+        <Card className="p-8 text-center space-y-4 border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900/40 shadow-xs">
+          <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mx-auto">
             <Target className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-white">No Financial Goals Added Yet</h3>
-            <p className="text-xs text-slate-400 max-w-md mx-auto mt-1">
-              Add goals such as Retirement, House Downpayment, Emergency Fund, or Higher Education to calculate required monthly SIP amounts.
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">No Financial Goals Yet</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto mt-1">
+              Add financial goals such as Retirement, House Downpayment, Emergency Fund, or Higher Education to calculate required monthly SIP amounts.
             </p>
           </div>
-          <Button onClick={() => setIsModalOpen(true)} className="gap-2">
-            <Plus className="w-4 h-4" /> Create First Goal
+          <Button onClick={handleOpenModal} className="gap-2 bg-emerald-600 hover:bg-emerald-500 text-white">
+            <Plus className="w-4 h-4" /> Create Your First Goal
           </Button>
         </Card>
       ) : (
@@ -189,6 +263,12 @@ function GoalsContent() {
               </button>
             </CardHeader>
 
+            {formError && (
+              <div className="mx-6 p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">
+                {formError}
+              </div>
+            )}
+
             <form onSubmit={handleCreateGoal}>
               <CardContent className="space-y-4">
                 <Select
@@ -196,9 +276,9 @@ function GoalsContent() {
                   value={newGoal.goal_type}
                   onChange={(e) => setNewGoal({ ...newGoal, goal_type: e.target.value as GoalType })}
                   options={[
-                    { value: "EMERGENCY_FUND", label: "Emergency Fund Buffer" },
-                    { value: "HOUSE_DOWNPAYMENT", label: "House Downpayment" },
                     { value: "RETIREMENT", label: "Retirement Corpus" },
+                    { value: "HOUSE_DOWNPAYMENT", label: "House Downpayment" },
+                    { value: "EMERGENCY_FUND", label: "Emergency Fund Buffer" },
                     { value: "EDUCATION", label: "Higher Education" },
                     { value: "WEALTH_CREATION", label: "Long-Term Wealth Creation" },
                     { value: "OTHER", label: "Custom Life Goal" },
@@ -211,8 +291,9 @@ function GoalsContent() {
                   prefixSymbol="₹"
                   min={10000}
                   step={25000}
+                  placeholder="e.g. 2500000"
                   value={newGoal.target_amount}
-                  onChange={(e) => setNewGoal({ ...newGoal, target_amount: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) => setNewGoal({ ...newGoal, target_amount: e.target.value })}
                   required
                 />
 
@@ -222,8 +303,9 @@ function GoalsContent() {
                   prefixSymbol="₹"
                   min={0}
                   step={10000}
+                  placeholder="e.g. 50000"
                   value={newGoal.current_amount}
-                  onChange={(e) => setNewGoal({ ...newGoal, current_amount: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) => setNewGoal({ ...newGoal, current_amount: e.target.value })}
                   required
                 />
 
@@ -232,9 +314,10 @@ function GoalsContent() {
                     label="Target Timeline (Years)"
                     type="number"
                     min={1}
-                    max={40}
+                    max={50}
+                    placeholder="e.g. 10"
                     value={newGoal.target_years}
-                    onChange={(e) => setNewGoal({ ...newGoal, target_years: parseInt(e.target.value) || 1 })}
+                    onChange={(e) => setNewGoal({ ...newGoal, target_years: e.target.value })}
                     required
                   />
 
@@ -255,9 +338,9 @@ function GoalsContent() {
                 <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" isLoading={isSubmitting} className="gap-1.5">
+                <Button type="submit" isLoading={isSubmitting} className="gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white">
                   <Sparkles className="w-3.5 h-3.5" />
-                  Save & Recalculate
+                  Save Goal
                 </Button>
               </CardFooter>
             </form>
