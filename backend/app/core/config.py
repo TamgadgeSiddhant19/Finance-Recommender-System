@@ -80,7 +80,8 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
 
-    # Upstox Market Data API Configuration
+    # Market Data Provider Configuration ("demo" | "upstox")
+    MARKET_DATA_PROVIDER: str = "demo"
     UPSTOX_ACCESS_TOKEN: Optional[str] = None
     UPSTOX_API_BASE_URL: str = "https://api.upstox.com/v2"
 

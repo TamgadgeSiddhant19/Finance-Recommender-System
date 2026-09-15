@@ -65,20 +65,32 @@ export function MarketOverviewBar() {
           </div>
 
           <span className="text-[10px] text-slate-500 uppercase tracking-wider hidden sm:inline">
-            Live Feed: <strong className="text-emerald-700 dark:text-emerald-400 font-semibold">Upstox API v2</strong>
+            Feed:{" "}
+            <strong
+              className={`font-semibold ${
+                data?.data_source === "upstox"
+                  ? "text-emerald-700 dark:text-emerald-400"
+                  : "text-amber-700 dark:text-amber-400"
+              }`}
+            >
+              {data?.data_source === "upstox"
+                ? `Upstox API (${data?.data_status || "Live"})`
+                : `Demo Feed (${data?.data_status || "Synthetic"})`}
+            </strong>
           </span>
         </div>
 
         {/* Index Quotes Ticker */}
         <div className="flex items-center gap-4 sm:gap-6 overflow-x-auto py-0.5 no-scrollbar">
-          {quotesList.map((q) => {
+          {quotesList.map((q, idx) => {
             const numChange = Number(q.change ?? 0);
             const numChangePct = Number(q.change_percent ?? 0);
-            const numLtp = Number(q.ltp ?? 0);
+            const numLtp = Number(q.price ?? q.ltp ?? 0);
             const isPositive = numChange >= 0;
+            const itemKey = q.symbol || q.instrument_id || q.instrument_key || `quote-${idx}`;
 
             return (
-              <div key={q.instrument_key} className="flex items-center gap-2 whitespace-nowrap">
+              <div key={itemKey} className="flex items-center gap-2 whitespace-nowrap">
                 <span className="font-medium text-slate-600 dark:text-slate-300">{q.symbol}</span>
                 <span className="font-semibold text-slate-900 dark:text-white">
                   {formatINR(numLtp)}
