@@ -30,8 +30,8 @@ async def test_get_benchmark_indices(client: AsyncClient):
     assert len(quotes) > 0
     # Should include Nifty 50
     nifty_key = BENCHMARK_INSTRUMENTS["NIFTY_50"]
-    assert nifty_key in quotes
-    nifty_quote = quotes[nifty_key]
+    assert "NIFTY 50" in quotes or nifty_key in quotes
+    nifty_quote = quotes.get("NIFTY 50") or quotes.get(nifty_key)
     assert nifty_quote["symbol"] == "NIFTY 50"
     assert float(nifty_quote["ltp"]) > 0
 

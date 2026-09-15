@@ -31,20 +31,32 @@ export function MarketOverviewBar() {
     return () => clearInterval(interval);
   }, []);
 
+  // Deduplicate quotes by canonical symbol to prevent duplicate React keys
+  const quotesList = React.useMemo(() => {
+    if (!data?.quotes) return [];
+    const uniqueMap = new Map<string, (typeof data.quotes)[string]>();
+    for (const [key, quote] of Object.entries(data.quotes)) {
+      const sym = quote.symbol || key;
+      if (!uniqueMap.has(sym)) {
+        uniqueMap.set(sym, quote);
+      }
+    }
+    return Array.from(uniqueMap.values());
+  }, [data]);
+
+  const marketStatus = data?.market_status;
+  const isMarketOpen = marketStatus?.is_trading ?? false;
+
   if (!data && isLoading) {
     return (
       <div className="w-full bg-slate-50 dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-800/80 px-4 py-2 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
         <div className="flex items-center gap-2">
           <Activity className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 animate-pulse" />
-          <span>Loading live Indian market data from Upstox...</span>
+          <span>Loading live Indian market data...</span>
         </div>
       </div>
     );
   }
-
-  const quotesList = data?.quotes ? Object.values(data.quotes) : [];
-  const marketStatus = data?.market_status;
-  const isMarketOpen = marketStatus?.is_trading ?? false;
 
   return (
     <div className="w-full bg-slate-50/90 dark:bg-slate-950/80 backdrop-blur border-b border-slate-200 dark:border-slate-800/70 px-4 py-2 transition-colors">

@@ -110,16 +110,13 @@ class MarketDataService:
 
         status = await self.adapter.get_market_status("NSE")
 
-        # Map requested query keys (including canonical symbols and provider keys) to their quote
-        final_quotes: Dict[str, MarketQuote] = dict(results)
+        # Map requested query items and canonical symbols to their quote
+        final_quotes: Dict[str, MarketQuote] = {}
         for item in symbols_or_keys:
             canonical = self.mapper.normalize_symbol(item)
-            provider_key = self.mapper.get_provider_key(canonical)
             if canonical in results:
-                if item not in final_quotes:
-                    final_quotes[item] = results[canonical]
-                if provider_key not in final_quotes:
-                    final_quotes[provider_key] = results[canonical]
+                final_quotes[item] = results[canonical]
+                final_quotes[canonical] = results[canonical]
 
         return MarketQuotesBatchResponse(
             quotes=final_quotes,
