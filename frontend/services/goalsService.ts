@@ -32,4 +32,42 @@ export const goalsService = {
       body: JSON.stringify(goalData),
     });
   },
+
+  async getGoalProjection(
+    goalId: number,
+    overrides?: {
+      expected_annual_return?: number;
+      inflation_rate?: number;
+      monthly_contribution?: number;
+    }
+  ): Promise<import("@/types").GoalProjectionResponse> {
+    return await apiClient<import("@/types").GoalProjectionResponse>(
+      `/goals/${goalId}/projection`,
+      {
+        method: "POST",
+        body: JSON.stringify(overrides || {}),
+      }
+    );
+  },
+
+  async simulateGoalProjection(
+    payload: {
+      goal_type?: string;
+      target_amount: number;
+      current_amount?: number;
+      target_years: number;
+      monthly_contribution?: number;
+      expected_annual_return?: number;
+      inflation_rate?: number;
+      priority?: string;
+    }
+  ): Promise<import("@/types").GoalProjectionResponse> {
+    return await apiClient<import("@/types").GoalProjectionResponse>(
+      "/goals/projection/simulate",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }
+    );
+  },
 };

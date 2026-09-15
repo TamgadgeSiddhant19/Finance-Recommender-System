@@ -80,10 +80,12 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
 
-    # Market Data Provider Configuration ("demo" | "upstox")
+    # Market Data Provider Configuration ("demo" | "upstox" | "alphavantage")
     MARKET_DATA_PROVIDER: str = "demo"
     UPSTOX_ACCESS_TOKEN: Optional[str] = None
     UPSTOX_API_BASE_URL: str = "https://api.upstox.com/v2"
+    ALPHA_VANTAGE_API_KEY: Optional[str] = None
+    ALPHA_VANTAGE_BASE_URL: str = "https://www.alphavantage.co/query"
 
     # Modular LLM Configuration
     LLM_PROVIDER: str = "mock"  # "mock" | "openai" | "gemini" | "ollama"

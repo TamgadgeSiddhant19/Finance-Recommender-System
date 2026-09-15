@@ -89,3 +89,38 @@ export interface FinancialAnalysisResponse {
   goals_feasibility: GoalFeasibilityResult[];
   analyzed_at: string;
 }
+
+export type GoalFeasibilityStatus =
+  | "ON_TRACK"
+  | "MODERATELY_UNDERFUNDED"
+  | "SIGNIFICANTLY_UNDERFUNDED"
+  | "NOT_FEASIBLE";
+
+export interface CalculationAssumptions {
+  compounding_frequency: string;
+  sip_timing: string;
+  inflation_model: string;
+  disclaimer: string;
+}
+
+export interface GoalProjectionResponse {
+  goal_id?: number;
+  goal_type: GoalType;
+  target_amount: number;
+  current_amount: number;
+  monthly_contribution: number;
+  horizon_years: number;
+  expected_annual_return_pct: number;
+  inflation_rate_pct: number;
+  inflation_adjusted_target: number;
+  projected_current_growth: number;
+  projected_sip_growth: number;
+  projected_corpus: number;
+  projected_shortfall_or_surplus: number;
+  funding_ratio_pct: number;
+  required_monthly_contribution: number;
+  required_annual_return_pct?: number | null;
+  feasibility_status: GoalFeasibilityStatus;
+  assumptions: CalculationAssumptions;
+  recommendations: string[];
+}

@@ -12,9 +12,23 @@ import { Progress } from "@/components/ui/Progress";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { useFinancialData } from "@/hooks/useFinancialData";
-import { GoalType, GoalPriority } from "@/types";
-import { formatINR } from "@/lib/utils";
-import { Target, Plus, ShieldCheck, Clock, X, Sparkles, UserPlus } from "lucide-react";
+import { goalsService } from "@/services/goalsService";
+import { GoalType, GoalPriority, GoalProjectionResponse } from "@/types";
+import { formatINR, formatPercent } from "@/lib/utils";
+import {
+  Target,
+  Plus,
+  ShieldCheck,
+  Clock,
+  X,
+  Sparkles,
+  UserPlus,
+  TrendingUp,
+  Calculator,
+  AlertTriangle,
+  CheckCircle2,
+  Info,
+} from "lucide-react";
 
 interface GoalFormState {
   goal_type: GoalType;
@@ -37,7 +51,6 @@ export default function GoalsPage() {
     <ProtectedRoute>
       <div className="flex-1 flex min-h-[calc(100vh-4rem)]">
         <Sidebar />
-
         <GoalsContent />
       </div>
     </ProtectedRoute>
@@ -51,10 +64,29 @@ function GoalsContent() {
   const [newGoal, setNewGoal] = useState<GoalFormState>(EMPTY_GOAL_FORM);
   const [formError, setFormError] = useState<string | null>(null);
 
+  // Projection Modal State
+  const [selectedProjection, setSelectedProjection] = useState<GoalProjectionResponse | null>(null);
+  const [isLoadingProjection, setIsLoadingProjection] = useState<boolean>(false);
+  const [projectionError, setProjectionError] = useState<string | null>(null);
+
   const handleOpenModal = () => {
     setNewGoal(EMPTY_GOAL_FORM);
     setFormError(null);
     setIsModalOpen(true);
+  };
+
+  const handleFetchProjection = async (goalId?: number) => {
+    if (!goalId) return;
+    setIsLoadingProjection(true);
+    setProjectionError(null);
+    try {
+      const projection = await goalsService.getGoalProjection(goalId);
+      setSelectedProjection(projection);
+    } catch (err: any) {
+      setProjectionError(err.message || "Failed to calculate projection.");
+    } finally {
+      setIsLoadingProjection(false);
+    }
   };
 
   const handleCreateGoal = async (e: React.FormEvent) => {
@@ -119,12 +151,14 @@ function GoalsContent() {
     <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Financial Goals &amp; Compounding Roadmap</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            Financial Goals &amp; Compounding Roadmap
+          </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Track progress, required SIP amounts, and compounding feasibility calculations for your life goals.
+            Track progress, required SIP amounts, and deterministic compounding feasibility for your life goals.
           </p>
         </div>
-        <Button onClick={handleOpenModal} className="gap-2 bg-emerald-600 hover:bg-emerald-500 text-white">
+        <Button onClick={handleOpenModal} className="gap-2 bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer">
           <Plus className="w-4 h-4" /> Add Financial Goal
         </Button>
       </div>
@@ -144,7 +178,7 @@ function GoalsContent() {
         </Card>
       )}
 
-      {/* If No Goals in Neon */}
+      {/* If No Goals */}
       {goals.length === 0 ? (
         <Card className="p-8 text-center space-y-4 border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900/40 shadow-xs">
           <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mx-auto">
@@ -153,10 +187,10 @@ function GoalsContent() {
           <div>
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white">No Financial Goals Yet</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto mt-1">
-              Add financial goals such as Retirement, House Downpayment, Emergency Fund, or Higher Education to calculate required monthly SIP amounts.
+              Add financial goals such as Retirement, House Downpayment, Emergency Fund, or Higher Education to calculate required monthly SIP amounts and inflation-adjusted projections.
             </p>
           </div>
-          <Button onClick={handleOpenModal} className="gap-2 bg-emerald-600 hover:bg-emerald-500 text-white">
+          <Button onClick={handleOpenModal} className="gap-2 bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer">
             <Plus className="w-4 h-4" /> Create Your First Goal
           </Button>
         </Card>
@@ -224,25 +258,192 @@ function GoalsContent() {
                           <span className="text-slate-400">Projected Corpus:</span>
                           <span className="font-semibold text-emerald-300">{formatINR(feasibility.projected_corpus)}</span>
                         </div>
-                        <p className="text-[11px] text-slate-300 pt-1 border-t border-slate-700/40">
-                          {feasibility.recommendation}
-                        </p>
                       </div>
                     )}
                   </CardContent>
                 </div>
 
-                <CardFooter className="flex items-center justify-between text-[11px] text-slate-400">
-                  <span className="flex items-center gap-1">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> Compounding Annuity Formula
+                <CardFooter className="flex items-center justify-between pt-3 border-t border-slate-800/60">
+                  <span className="flex items-center gap-1 text-[11px] text-slate-400">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> Annuity Due Model
                   </span>
-                  <Badge variant={progressPct >= 70 ? "emerald" : "blue"} size="sm">
-                    {progressPct >= 70 ? "On Track" : "Accumulating"}
-                  </Badge>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleFetchProjection(goal.id)}
+                    className="text-xs gap-1.5 border-slate-700 hover:bg-slate-800 text-slate-200 cursor-pointer"
+                  >
+                    <Calculator className="w-3.5 h-3.5 text-emerald-400" />
+                    Projection &amp; Feasibility
+                  </Button>
                 </CardFooter>
               </Card>
             );
           })}
+        </div>
+      )}
+
+      {/* Goal Feasibility & Projection Modal */}
+      {selectedProjection && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
+          <Card className="max-w-2xl w-full border-slate-700 bg-slate-900 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <CardHeader className="flex flex-row items-start justify-between border-b border-slate-800 pb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-xl text-white">
+                    {selectedProjection.goal_type.replace(/_/g, " ")} Projection
+                  </CardTitle>
+                  <Badge
+                    variant={
+                      selectedProjection.feasibility_status === "ON_TRACK"
+                        ? "emerald"
+                        : selectedProjection.feasibility_status === "MODERATELY_UNDERFUNDED"
+                        ? "blue"
+                        : selectedProjection.feasibility_status === "SIGNIFICANTLY_UNDERFUNDED"
+                        ? "amber"
+                        : "rose"
+                    }
+                  >
+                    {selectedProjection.feasibility_status.replace(/_/g, " ")}
+                  </Badge>
+                </div>
+                <CardDescription className="text-xs text-slate-400 mt-1">
+                  Deterministic inflation-indexed compounding analysis over {selectedProjection.horizon_years} years
+                </CardDescription>
+              </div>
+              <button
+                onClick={() => setSelectedProjection(null)}
+                className="text-slate-400 hover:text-white p-1 rounded transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </CardHeader>
+
+            <CardContent className="space-y-6 pt-6 text-sm">
+              {/* Core Projection Metrics Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <div className="p-3 rounded-lg bg-slate-800/60 border border-slate-700/60">
+                  <span className="text-xs text-slate-400">Nominal Target</span>
+                  <p className="text-base font-bold text-slate-200 mt-0.5">
+                    {formatINR(selectedProjection.target_amount)}
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-lg bg-slate-800/60 border border-slate-700/60">
+                  <span className="text-xs text-slate-400">
+                    Inflation-Adjusted Target ({selectedProjection.inflation_rate_pct}% p.a.)
+                  </span>
+                  <p className="text-base font-bold text-amber-300 mt-0.5">
+                    {formatINR(selectedProjection.inflation_adjusted_target)}
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-lg bg-slate-800/60 border border-slate-700/60">
+                  <span className="text-xs text-slate-400">
+                    Projected Corpus ({selectedProjection.expected_annual_return_pct}% p.a.)
+                  </span>
+                  <p className="text-base font-bold text-emerald-400 mt-0.5">
+                    {formatINR(selectedProjection.projected_corpus)}
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-lg bg-slate-800/60 border border-slate-700/60">
+                  <span className="text-xs text-slate-400">Current Monthly SIP</span>
+                  <p className="text-base font-bold text-slate-300 mt-0.5">
+                    {formatINR(selectedProjection.monthly_contribution)}/mo
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-lg bg-slate-800/60 border border-slate-700/60">
+                  <span className="text-xs text-slate-400">Required Monthly SIP</span>
+                  <p className="text-base font-bold text-sky-400 mt-0.5">
+                    {formatINR(selectedProjection.required_monthly_contribution)}/mo
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-lg bg-slate-800/60 border border-slate-700/60">
+                  <span className="text-xs text-slate-400">Funding Coverage</span>
+                  <p className="text-base font-bold text-indigo-400 mt-0.5">
+                    {selectedProjection.funding_ratio_pct}%
+                  </p>
+                </div>
+              </div>
+
+              {/* Shortfall / Surplus Alert Banner */}
+              <div
+                className={`p-4 rounded-xl border flex items-center justify-between text-xs ${
+                  selectedProjection.projected_shortfall_or_surplus >= 0
+                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-200"
+                    : "bg-rose-500/10 border-rose-500/30 text-rose-200"
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  {selectedProjection.projected_shortfall_or_surplus >= 0 ? (
+                    <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                  ) : (
+                    <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />
+                  )}
+                  <div>
+                    <span className="font-semibold text-sm block">
+                      {selectedProjection.projected_shortfall_or_surplus >= 0
+                        ? `Projected Surplus: ${formatINR(selectedProjection.projected_shortfall_or_surplus)}`
+                        : `Projected Shortfall: ${formatINR(Math.abs(selectedProjection.projected_shortfall_or_surplus))}`}
+                    </span>
+                    <span className="text-[11px] text-slate-400 mt-0.5 block">
+                      {selectedProjection.projected_shortfall_or_surplus >= 0
+                        ? "Your investments and planned SIP exceed the inflation-adjusted goal target."
+                        : `Increasing SIP by ${formatINR(
+                            Math.max(
+                              0,
+                              selectedProjection.required_monthly_contribution -
+                                selectedProjection.monthly_contribution
+                            )
+                          )}/mo bridges this gap.`}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actionable Recommendations */}
+              <div className="space-y-2">
+                <h4 className="font-semibold text-xs text-slate-300 uppercase tracking-wider">
+                  Actionable Strategy &amp; Guidance
+                </h4>
+                <div className="space-y-1.5">
+                  {selectedProjection.recommendations.map((rec, rIdx) => (
+                    <div
+                      key={rIdx}
+                      className="p-2.5 rounded-lg bg-slate-800/40 border border-slate-700/40 text-xs text-slate-300 flex items-start gap-2"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
+                      <span>{rec}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Transparency & Assumptions */}
+              <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800 text-[11px] text-slate-400 space-y-1">
+                <div className="flex items-center gap-1.5 text-slate-300 font-medium">
+                  <Info className="w-3.5 h-3.5 text-sky-400" />
+                  <span>Calculation Assumptions</span>
+                </div>
+                <p>
+                  • Compounding: {selectedProjection.assumptions.compounding_frequency} | Timing:{" "}
+                  {selectedProjection.assumptions.sip_timing}
+                </p>
+                <p className="text-[10px] text-slate-500 italic pt-1">
+                  {selectedProjection.assumptions.disclaimer}
+                </p>
+              </div>
+            </CardContent>
+
+            <CardFooter className="flex justify-end border-t border-slate-800 pt-4">
+              <Button onClick={() => setSelectedProjection(null)} className="bg-slate-800 hover:bg-slate-700 text-white cursor-pointer">
+                Close Projection
+              </Button>
+            </CardFooter>
+          </Card>
         </div>
       )}
 
@@ -339,7 +540,7 @@ function GoalsContent() {
                 <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" isLoading={isSubmitting} className="gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white">
+                <Button type="submit" isLoading={isSubmitting} className="gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer">
                   <Sparkles className="w-3.5 h-3.5" />
                   Save Goal
                 </Button>

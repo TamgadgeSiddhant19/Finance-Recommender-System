@@ -181,3 +181,68 @@ async def get_goals(
         .order_by(FinancialGoal.created_at.desc())
     )
     return list(goals_res.scalars().all())
+
+
+# ---------------------------------------------------------------------------
+# Goal Feasibility & Projection Engine Endpoints (Phase 7.1)
+# ---------------------------------------------------------------------------
+
+from app.goals.exceptions import (
+    GoalAccessForbiddenError,
+    GoalNotFoundError,
+    InvalidGoalParametersError,
+)
+from app.goals.schemas import (
+    GoalProjectionRequest,
+    GoalProjectionResponse,
+    GoalProjectionSimulateRequest,
+)
+from app.goals.service import GoalProjectionService
+
+
+@router.post(
+    "/goals/{goal_id}/projection",
+    response_model=GoalProjectionResponse,
+    summary="Calculate comprehensive feasibility & growth projection for a financial goal",
+)
+async def get_goal_projection(
+    goal_id: int,
+    overrides: Optional[GoalProjectionRequest] = None,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> GoalProjectionResponse:
+    """
+    Computes inflation-adjusted target, compounding growth of existing savings,
+    SIP future value, required monthly contribution, and feasibility classification.
+    Requires authentication and strict goal ownership verification.
+    """
+    try:
+        return await GoalProjectionService.get_projection_for_goal(
+            db=db,
+            goal_id=goal_id,
+            user_id=current_user.id,
+            overrides=overrides,
+        )
+    except GoalNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=e.message)
+    except GoalAccessForbiddenError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=e.message)
+    except InvalidGoalParametersError as e:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=e.reason)
+
+
+@router.post(
+    "/goals/projection/simulate",
+    response_model=GoalProjectionResponse,
+    summary="Stateless simulation of goal projection for calculators and onboarding flows",
+)
+async def simulate_goal_projection(
+    req: GoalProjectionSimulateRequest,
+) -> GoalProjectionResponse:
+    """
+    Stateless projection simulation without requiring persistence.
+    """
+    try:
+        return GoalProjectionService.simulate_projection(req)
+    except InvalidGoalParametersError as e:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=e.reason)
