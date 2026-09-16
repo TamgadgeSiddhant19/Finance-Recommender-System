@@ -7,6 +7,7 @@ from app.database.session import get_db
 from app.financial_data.models import FinancialProduct
 from app.models.user import User
 from app.recommendations.schemas import (
+    RecommendationAuditResponse,
     RecommendationHistoryItem,
     RecommendationResponse,
     RecommendationSimulateRequest,
@@ -86,7 +87,6 @@ async def get_my_recommendation_history(
 
 
 @router.get(
-
     "/recommendations/me/latest",
     response_model=RecommendationResponse,
     summary="Retrieve latest generated recommendation for currently authenticated user",
@@ -120,6 +120,67 @@ async def get_my_latest_recommendation(
         )
     return rec
 
+
+@router.get(
+    "/recommendations/me/latest/audit",
+    response_model=RecommendationAuditResponse,
+    summary="Retrieve immutable audit trail and decision trace for the latest recommendation",
+)
+async def get_my_latest_recommendation_audit(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> RecommendationAuditResponse:
+    """
+    Retrieves full audit log, calculation trace, inputs hash, and data provenance for the user's latest recommendation.
+    """
+    history = await RecommendationService.get_user_recommendation_history(
+        db=db,
+        user_id=current_user.id,
+        limit=1,
+    )
+    if not history:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No recommendation has been generated yet for this account.",
+        )
+    audit = await RecommendationService.get_recommendation_audit(
+        db=db,
+        user_id=current_user.id,
+        recommendation_id=history[0].id,
+    )
+    if not audit:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Audit log for latest recommendation could not be found.",
+        )
+    return audit
+
+
+@router.get(
+    "/recommendations/{recommendation_id}/audit",
+    response_model=RecommendationAuditResponse,
+    summary="Retrieve immutable audit trail and decision trace by recommendation ID",
+)
+async def get_recommendation_audit_by_id(
+    recommendation_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> RecommendationAuditResponse:
+    """
+    Retrieves full audit log, calculation trace, inputs hash, and data provenance for a specific recommendation ID.
+    Enforces strict user ownership.
+    """
+    audit = await RecommendationService.get_recommendation_audit(
+        db=db,
+        user_id=current_user.id,
+        recommendation_id=recommendation_id,
+    )
+    if not audit:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Audit log for recommendation {recommendation_id} not found or access denied.",
+        )
+    return audit
 
 
 @router.post(

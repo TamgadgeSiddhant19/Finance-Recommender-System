@@ -1,5 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
+import logging
 from typing import Any, Dict, List, Optional, Sequence, Union
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,6 +21,13 @@ from app.recommendations.allocation import (
     generate_goal_aware_allocation_with_reasons,
     generate_target_allocation,
 )
+from app.recommendations.audit import RecommendationAudit, compute_input_snapshot_hash
+from app.recommendations.constants import (
+    AUDIT_SCHEMA_VERSION,
+    RECOMMENDATION_ENGINE_VERSION,
+    RECOMMENDATION_POLICY_VERSION,
+)
+from app.recommendations.explanation import build_recommendation_explanation
 from app.recommendations.filters import filter_eligible_products
 from app.recommendations.models import Recommendation, RecommendationItem
 from app.recommendations.policy import (
@@ -30,10 +38,14 @@ from app.recommendations.policy import (
 from app.recommendations.portfolio import construct_portfolio
 from app.recommendations.product_intelligence import build_product_intelligence
 from app.recommendations.schemas import (
+    DecisionTrace,
     GoalRecommendationSummary,
+    MarketDataProvenanceItem,
     PortfolioValidationReport,
     ProductExclusionSummary,
     ProductSelectionReason,
+    RecommendationAuditResponse,
+    RecommendationExplanation,
     RecommendationHistoryItem,
     RecommendationResponse,
     RecommendedPortfolioItem,
@@ -44,7 +56,10 @@ from app.recommendations.validators import validate_portfolio
 from app.schemas.enums import Priority
 from app.schemas.financial_goal import FinancialGoalBase
 from app.schemas.financial_profile import FinancialProfileBase
+from app.services.financial_health import calculate_financial_health
 from app.services.risk_scoring import calculate_risk_assessment
+
+logger = logging.getLogger(__name__)
 
 ProductTypeUnion = Union[FinancialProduct, FinancialProductResponse]
 GoalTypeUnion = Union[FinancialGoal, FinancialGoalBase]
@@ -249,6 +264,142 @@ class RecommendationService:
         funding_ratio_val = primary_goal_projection.funding_ratio_pct if primary_goal_projection else None
         shortfall_surplus_val = primary_goal_projection.projected_shortfall_or_surplus if primary_goal_projection else None
 
+        # 9. Phase 7.4 Market Data Provenance & Deterministic Explanations
+        market_provenance_map: Dict[str, MarketDataProvenanceItem] = {}
+        for item in portfolio_items:
+            market_provenance_map[item.symbol] = MarketDataProvenanceItem(
+                symbol=item.symbol,
+                data_source=item.data_source or "master_catalog",
+                data_status=item.data_status or "unavailable",
+                data_as_of=item.data_as_of.isoformat() if item.data_as_of else None,
+                data_quality_score=item.data_quality_score or Decimal("0.00"),
+            )
+        for prod, score, reasons, intel in scored_products:
+            if prod.symbol not in market_provenance_map:
+                market_provenance_map[prod.symbol] = MarketDataProvenanceItem(
+                    symbol=prod.symbol,
+                    data_source=intel.data_source or "master_catalog",
+                    data_status=intel.data_status or "unavailable",
+                    data_as_of=intel.data_as_of.isoformat() if intel.data_as_of else None,
+                    data_quality_score=intel.data_quality_score or Decimal("0.00"),
+                )
+        for prod in available_products:
+            sym = getattr(prod, "symbol", "")
+            if sym and sym not in market_provenance_map:
+                market_provenance_map[sym] = MarketDataProvenanceItem(
+                    symbol=sym,
+                    data_source="master_catalog",
+                    data_status="unavailable",
+                    data_as_of=None,
+                    data_quality_score=Decimal("0.00"),
+                )
+
+        explanation = build_recommendation_explanation(
+            profile=profile,
+            goals=valid_goals,
+            risk_assessment=risk_result,
+            target_allocation=target_alloc,
+            portfolio_items=portfolio_items,
+            all_products=available_products,
+            raw_exclusions=raw_exclusions,
+            scored_products=scored_products,
+            primary_goal_projection=primary_goal_projection,
+            allocation_reasons=allocation_reasons,
+            funding_gap_actions=funding_gap_actions,
+            horizon_bucket=horizon_bucket.value,
+            market_provenance_map=market_provenance_map,
+        )
+
+        # 10. Phase 7.4 Input Hash & Decision Trace
+        input_hash = compute_input_snapshot_hash(profile, valid_goals)
+        try:
+            fin_health = calculate_financial_health(profile)
+            fin_health_dict = {
+                "health_score": fin_health.health_score,
+                "savings_rate_pct": float(fin_health.savings_rate_pct),
+                "debt_to_income_pct": float(fin_health.debt_to_income_pct),
+                "emergency_fund_months": float(fin_health.emergency_fund_months),
+                "status": fin_health.status,
+            }
+        except Exception:
+            fin_health_dict = {}
+
+        trace_profile = {
+            "age": getattr(profile, "age", None),
+            "monthly_income": float(profile.monthly_income or 0) if getattr(profile, "monthly_income", None) is not None else 0.0,
+            "monthly_expenses": float(profile.monthly_expenses or 0) if getattr(profile, "monthly_expenses", None) is not None else 0.0,
+            "monthly_investment_capacity": float(monthly_capacity),
+            "risk_tolerance": str(getattr(profile, "risk_tolerance", "moderate")),
+            "investment_knowledge": str(getattr(profile, "investment_knowledge", "intermediate")),
+            "emergency_fund_current": float(getattr(profile, "emergency_fund_current", 0) or 0),
+            "total_debt": float(getattr(profile, "total_debt", 0) or 0),
+        }
+        trace_risk = {
+            "risk_score": risk_score,
+            "risk_category": risk_category,
+            "score_breakdown": getattr(risk_result, "score_breakdown", {}),
+        }
+        trace_goals = [g.model_dump(mode="json") for g in goals_breakdown]
+        trace_hard_rejected = [
+            {
+                "symbol": ex.symbol,
+                "name": ex.name,
+                "reason": ex.reason,
+                "category": ex.category,
+            }
+            for ex in excluded_products
+        ]
+        trace_ranked_lower = [
+            {
+                "symbol": it.symbol,
+                "name": it.name,
+                "suitability_score": float(it.suitability_score) if it.suitability_score is not None else None,
+                "reason": it.reason,
+            }
+            for it in explanation.excluded_products if it.exclusion_type == "RANKED_LOWER"
+        ]
+        trace_selected = [
+            {
+                "symbol": it.symbol,
+                "name": it.name,
+                "suitability_score": float(it.suitability_score),
+                "allocation_percentage": float(it.allocation_percentage),
+                "suggested_monthly_sip": float(it.suggested_monthly_sip),
+            }
+            for it in portfolio_items
+        ]
+        trace_provenance = {
+            sym: prov.model_dump(mode="json") for sym, prov in market_provenance_map.items()
+        }
+        trace_validation = validation_report.model_dump(mode="json")
+
+        decision_trace = DecisionTrace(
+            user_id=user_id,
+            engine_version=RECOMMENDATION_ENGINE_VERSION,
+            policy_version=RECOMMENDATION_POLICY_VERSION,
+            input_snapshot_hash=input_hash,
+            profile_snapshot=trace_profile,
+            risk_assessment=trace_risk,
+            financial_health=fin_health_dict,
+            goals=trace_goals,
+            horizon_bucket=horizon_bucket.value,
+            feasibility_status=goal_status_str or "NOT_SPECIFIED",
+            target_allocation={
+                "equity": target_alloc.equity_pct,
+                "debt": target_alloc.debt_pct,
+                "gold": target_alloc.gold_pct,
+                "cash": target_alloc.cash_pct,
+            },
+            guardrails_applied=allocation_reasons.get("guardrails", ["SEBI asset allocation ceilings enforced."]) if isinstance(allocation_reasons, dict) else ["SEBI asset allocation ceilings enforced."],
+            total_products_considered=len(available_products),
+            hard_rejected_products=trace_hard_rejected,
+            eligible_products_count=len(eligible_products),
+            ranked_lower_products=trace_ranked_lower,
+            selected_products=trace_selected,
+            market_data_provenance=trace_provenance,
+            validation_report=trace_validation,
+        )
+
         return RecommendationResponse(
             recommendation_id=None,
             user_id=user_id,
@@ -272,6 +423,11 @@ class RecommendationService:
             funding_gap_actions=funding_gap_actions,
             goals_breakdown=goals_breakdown,
             excluded_products=excluded_products,
+            engine_version=RECOMMENDATION_ENGINE_VERSION,
+            policy_version=RECOMMENDATION_POLICY_VERSION,
+            input_snapshot_hash=input_hash,
+            explanation=explanation,
+            decision_trace=decision_trace,
         )
 
     @classmethod
@@ -283,7 +439,7 @@ class RecommendationService:
         """
         Loads user, profile, goals, and products from database,
         queries MarketDataService for real/historical candles,
-        computes recommendation with product intelligence, persists record, and returns response.
+        computes recommendation with product intelligence, persists record and audit log, and returns response.
         """
         # 1. Fetch User
         user_res = await db.execute(select(User).where(User.id == user_id))
@@ -320,7 +476,7 @@ class RecommendationService:
             except Exception:
                 pass
 
-        # 6. Generate Recommendation with Product Intelligence
+        # 6. Generate Recommendation with Product Intelligence & Explanations
         rec_resp = cls.generate_recommendation(
             profile=profile,
             goals=goals,
@@ -340,6 +496,11 @@ class RecommendationService:
             "funding_gap_actions": rec_resp.funding_gap_actions,
             "goals_breakdown": [g.model_dump(mode="json") for g in rec_resp.goals_breakdown],
             "excluded_products": [ex.model_dump(mode="json") for ex in rec_resp.excluded_products],
+            "engine_version": rec_resp.engine_version,
+            "policy_version": rec_resp.policy_version,
+            "input_snapshot_hash": rec_resp.input_snapshot_hash,
+            "explanation": rec_resp.explanation.model_dump(mode="json") if rec_resp.explanation else None,
+            "decision_trace": rec_resp.decision_trace.model_dump(mode="json") if rec_resp.decision_trace else None,
         }
 
         # 8. Persist Recommendation to Database
@@ -398,6 +559,27 @@ class RecommendationService:
                 intelligence_metadata=intel_meta,
             )
             db.add(db_item)
+
+        # 9. Phase 7.4 Persist Recommendation Audit Trail
+        try:
+            data_prov_json = {
+                k: v.model_dump(mode="json") for k, v in rec_resp.explanation.data_provenance.items()
+            } if rec_resp.explanation else {}
+
+            db_audit = RecommendationAudit(
+                recommendation_id=db_rec.id,
+                user_id=user_id,
+                engine_version=RECOMMENDATION_ENGINE_VERSION,
+                policy_version=RECOMMENDATION_POLICY_VERSION,
+                schema_version=AUDIT_SCHEMA_VERSION,
+                input_snapshot_hash=rec_resp.input_snapshot_hash or compute_input_snapshot_hash(profile, goals),
+                decision_trace=rec_resp.decision_trace.model_dump(mode="json") if rec_resp.decision_trace else {},
+                data_provenance=data_prov_json,
+                validation_result=rec_resp.validation_report.model_dump(mode="json") if hasattr(rec_resp.validation_report, "model_dump") else rec_resp.validation_report,
+            )
+            db.add(db_audit)
+        except Exception as audit_err:
+            logger.warning(f"Could not persist RecommendationAudit log for rec {db_rec.id}: {audit_err}")
 
         await db.commit()
         await db.refresh(db_rec)
@@ -494,6 +676,20 @@ class RecommendationService:
         goals_breakdown = [GoalRecommendationSummary(**g) for g in meta.get("goals_breakdown", [])]
         excluded_products = [ProductExclusionSummary(**ex) for ex in meta.get("excluded_products", [])]
 
+        explanation_obj = None
+        if "explanation" in meta and meta["explanation"]:
+            try:
+                explanation_obj = RecommendationExplanation.model_validate(meta["explanation"])
+            except Exception:
+                pass
+
+        decision_trace_obj = None
+        if "decision_trace" in meta and meta["decision_trace"]:
+            try:
+                decision_trace_obj = DecisionTrace.model_validate(meta["decision_trace"])
+            except Exception:
+                pass
+
         return RecommendationResponse(
             recommendation_id=rec.id,
             user_id=rec.user_id,
@@ -518,7 +714,133 @@ class RecommendationService:
             funding_gap_actions=meta.get("funding_gap_actions", []),
             goals_breakdown=goals_breakdown,
             excluded_products=excluded_products,
+            engine_version=meta.get("engine_version", RECOMMENDATION_ENGINE_VERSION),
+            policy_version=meta.get("policy_version", RECOMMENDATION_POLICY_VERSION),
+            input_snapshot_hash=meta.get("input_snapshot_hash"),
+            explanation=explanation_obj,
+            decision_trace=decision_trace_obj,
         )
+
+    @classmethod
+    async def get_recommendation_audit(
+        cls,
+        db: AsyncSession,
+        user_id: int,
+        recommendation_id: int,
+    ) -> Optional[RecommendationAuditResponse]:
+        """
+        Retrieves immutable audit trail and decision trace for a specific recommendation.
+        Enforces strict user ownership.
+        """
+        # 1. Query recommendations_audits table
+        stmt = select(RecommendationAudit).where(
+            RecommendationAudit.recommendation_id == recommendation_id,
+            RecommendationAudit.user_id == user_id,
+        )
+        res = await db.execute(stmt)
+        audit = res.scalar_one_or_none()
+        if audit:
+            trace_data = audit.decision_trace or {}
+            try:
+                trace_model = DecisionTrace.model_validate(trace_data)
+            except Exception:
+                trace_model = DecisionTrace(
+                    user_id=user_id,
+                    engine_version=audit.engine_version,
+                    policy_version=audit.policy_version,
+                    input_snapshot_hash=audit.input_snapshot_hash,
+                    profile_snapshot=audit.user_profile_snapshot or {},
+                    risk_assessment={"risk_score": audit.risk_score, "risk_category": audit.risk_category},
+                    financial_health={},
+                    goals=audit.goals_snapshot or [],
+                    horizon_bucket="GENERAL_WEALTH",
+                    feasibility_status=audit.goal_feasibility_status or "NOT_SPECIFIED",
+                    target_allocation={
+                        "equity": audit.target_equity_pct,
+                        "debt": audit.target_debt_pct,
+                        "gold": audit.target_gold_pct,
+                        "cash": audit.target_cash_pct,
+                    },
+                    total_products_considered=0,
+                    eligible_products_count=0,
+                    validation_report={"is_valid": True},
+                )
+
+            return RecommendationAuditResponse(
+                id=audit.id,
+                recommendation_id=audit.recommendation_id,
+                user_id=audit.user_id,
+                engine_version=audit.engine_version,
+                policy_version=audit.policy_version,
+                schema_version=audit.schema_version,
+                input_snapshot_hash=audit.input_snapshot_hash,
+                decision_trace=trace_model,
+                data_provenance=audit.data_provenance or {},
+                validation_result=trace_model.validation_report if trace_model else {"is_valid": True},
+                created_at=audit.created_at,
+            )
+
+        # 2. Fallback: Check if recommendation exists for this user
+        rec = await cls.get_recommendation_by_id(db, user_id=user_id, recommendation_id=recommendation_id)
+        if not rec:
+            return None
+
+        # Build fallback audit response from stored recommendation
+        trace = rec.decision_trace
+        if not trace:
+            trace = DecisionTrace(
+                user_id=user_id,
+                engine_version=rec.engine_version or RECOMMENDATION_ENGINE_VERSION,
+                policy_version=rec.policy_version or RECOMMENDATION_POLICY_VERSION,
+                input_snapshot_hash=rec.input_snapshot_hash or "legacy_snapshot_hash",
+                profile_snapshot={"monthly_investment_capacity": float(rec.monthly_investment_capacity)},
+                risk_assessment={"risk_score": rec.risk_score, "risk_category": rec.risk_category},
+                financial_health={},
+                goals=[g.model_dump(mode="json") for g in (rec.goals_breakdown or [])],
+                horizon_bucket=rec.goal_horizon_bucket or "GENERAL_WEALTH",
+                feasibility_status=rec.goal_feasibility_status or "NOT_SPECIFIED",
+                target_allocation={
+                    "equity": rec.target_allocation.equity_pct,
+                    "debt": rec.target_allocation.debt_pct,
+                    "gold": rec.target_allocation.gold_pct,
+                    "cash": rec.target_allocation.cash_pct,
+                },
+                total_products_considered=len(rec.portfolio_items) + len(rec.excluded_products),
+                eligible_products_count=len(rec.portfolio_items),
+                selected_products=[
+                    {
+                        "symbol": item.symbol,
+                        "name": item.name,
+                        "suitability_score": float(item.suitability_score),
+                        "allocation_percentage": float(item.allocation_percentage),
+                        "suggested_monthly_sip": float(item.suggested_monthly_sip),
+                    }
+                    for item in rec.portfolio_items
+                ],
+                validation_report=rec.validation_report.model_dump(mode="json") if hasattr(rec.validation_report, "model_dump") else rec.validation_report,
+            )
+
+        return RecommendationAuditResponse(
+            id=recommendation_id,
+            recommendation_id=recommendation_id,
+            user_id=user_id,
+            engine_version=rec.engine_version or RECOMMENDATION_ENGINE_VERSION,
+            policy_version=rec.policy_version or RECOMMENDATION_POLICY_VERSION,
+            schema_version=AUDIT_SCHEMA_VERSION,
+            input_snapshot_hash=rec.input_snapshot_hash or "legacy_snapshot_hash",
+            decision_trace=trace,
+            data_provenance={
+                item.symbol: {
+                    "data_source": item.data_source,
+                    "data_status": item.data_status,
+                    "data_quality_score": float(item.data_quality_score) if item.data_quality_score is not None else 0.0,
+                }
+                for item in rec.portfolio_items
+            },
+            validation_result=rec.validation_report.model_dump(mode="json") if hasattr(rec.validation_report, "model_dump") else rec.validation_report,
+            created_at=rec.created_at,
+        )
+
 
     @staticmethod
     def prepare_rag_explanation_payload(

@@ -55,6 +55,12 @@ class Recommendation(Base):
         cascade="all, delete-orphan",
         order_by="RecommendationItem.allocation_percentage.desc()",
     )
+    audit: Mapped[Optional["RecommendationAudit"]] = relationship(
+        "RecommendationAudit",
+        back_populates="recommendation",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
 
 
 class RecommendationItem(Base):

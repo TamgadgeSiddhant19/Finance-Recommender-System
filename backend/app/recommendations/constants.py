@@ -62,3 +62,15 @@ ALLOCATION_TOLERANCE_PCT: Decimal = Decimal("0.50")  # ±0.5% allowed drift for 
 MINIMUM_SIP_AMOUNT_FLOOR: Decimal = Decimal("500.00")  # Minimum meaningful SIP in INR
 MAX_PRODUCTS_PER_PORTFOLIO: int = 6
 MIN_PRODUCTS_PER_PORTFOLIO: int = 2
+
+# ------------------------------------------------------------------------------
+# 5. Recommendation Engine & Policy Versioning (Phase 7.4)
+# ------------------------------------------------------------------------------
+RECOMMENDATION_ENGINE_VERSION: str = "7.4.0"
+RECOMMENDATION_POLICY_VERSION: str = "2026.1"
+AUDIT_SCHEMA_VERSION: str = "1.0.0"
+
+# Exclusion Taxonomy Types
+EXCLUSION_TYPE_HARD_REJECT: str = "HARD_REJECTION"
+EXCLUSION_TYPE_RANKED_LOWER: str = "RANKED_LOWER"
+
