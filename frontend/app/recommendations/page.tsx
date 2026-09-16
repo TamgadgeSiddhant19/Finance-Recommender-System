@@ -54,6 +54,9 @@ function RecommendationsContent() {
   } = useFinancialData();
 
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showExcluded, setShowExcluded] = useState(false);
+  const [showAuditModal, setShowAuditModal] = useState(false);
+  const [copiedHash, setCopiedHash] = useState(false);
 
   const handleGenerate = async () => {
     setIsGenerating(true);
@@ -182,9 +185,6 @@ function RecommendationsContent() {
   const policyVersion = recommendation.policy_version || "2026.1";
   const snapshotHash = recommendation.input_snapshot_hash;
 
-  const [showExcluded, setShowExcluded] = useState(false);
-  const [showAuditModal, setShowAuditModal] = useState(false);
-  const [copiedHash, setCopiedHash] = useState(false);
 
   const copyHashToClipboard = () => {
     if (snapshotHash) {
