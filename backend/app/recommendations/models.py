@@ -83,6 +83,7 @@ class RecommendationItem(Base):
     monthly_sip_amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
     lump_sum_amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0.00"), nullable=False)
     selection_reasons: Mapped[Optional[List[Dict[str, Any]]]] = mapped_column(JSON, nullable=True)
+    intelligence_metadata: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

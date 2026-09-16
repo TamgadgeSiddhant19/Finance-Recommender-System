@@ -202,14 +202,14 @@ def test_deterministic_scoring_repeatability():
     product = get_mock_products()[0]  # Nifty 50 Index Fund
     target_dict = {"equity": Decimal("55.00"), "debt": Decimal("35.00"), "gold": Decimal("10.00"), "cash": Decimal("0.00")}
 
-    score1, reasons1 = score_product(
+    score1, reasons1, intel1 = score_product(
         product=product,
         user_risk_cat="MODERATE",
         monthly_capacity=Decimal("25000.00"),
         target_allocation_dict=target_dict,
         goals=[],
     )
-    score2, reasons2 = score_product(
+    score2, reasons2, intel2 = score_product(
         product=product,
         user_risk_cat="MODERATE",
         monthly_capacity=Decimal("25000.00"),
@@ -219,8 +219,9 @@ def test_deterministic_scoring_repeatability():
 
     assert score1 == score2
     assert Decimal("0.00") <= score1 <= Decimal("100.00")
-    assert len(reasons1) == 5
-    assert len(reasons2) == 5
+    assert len(reasons1) >= 5
+    assert len(reasons2) >= 5
+    assert intel1.symbol == intel2.symbol
 
 
 # ------------------------------------------------------------------------------

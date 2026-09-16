@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 import logging
 from typing import Dict, List, Optional
 from app.core.config import settings
+from app.market.adapters.alphavantage import AlphaVantageMarketDataAdapter
 from app.market.adapters.base import MarketDataAdapter
 from app.market.adapters.demo import DemoMarketDataAdapter
 from app.market.adapters.upstox import UpstoxMarketDataAdapter
@@ -46,7 +47,10 @@ class MarketDataService:
 
     def _resolve_adapter(self) -> MarketDataAdapter:
         provider_name = getattr(settings, "MARKET_DATA_PROVIDER", "demo").lower()
-        if provider_name == "upstox":
+        if provider_name == "alphavantage":
+            logger.info("Initializing AlphaVantageMarketDataAdapter...")
+            return AlphaVantageMarketDataAdapter(mapper=self.mapper)
+        elif provider_name == "upstox":
             logger.info("Initializing UpstoxMarketDataAdapter...")
             return UpstoxMarketDataAdapter(mapper=self.mapper)
         logger.info("Initializing DemoMarketDataAdapter (default provider)...")

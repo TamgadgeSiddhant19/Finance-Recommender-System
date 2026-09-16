@@ -7,6 +7,16 @@ export interface ProductSelectionReason {
   score_contribution: number;
 }
 
+export interface ProductExclusionSummary {
+  product_id?: number;
+  symbol: string;
+  name: string;
+  asset_class?: string;
+  risk_level?: string;
+  reason: string;
+  category: string;
+}
+
 export interface RecommendedPortfolioItem {
   product_id: number;
   symbol: string;
@@ -19,6 +29,22 @@ export interface RecommendedPortfolioItem {
   suggested_monthly_sip: number;
   suggested_lump_sum: number;
   selection_reasons: ProductSelectionReason[];
+
+  // Phase 7.3 Product Intelligence & Risk-Adjusted Analytics
+  risk_compatibility_score?: number;
+  goal_compatibility_score?: number;
+  horizon_compatibility_score?: number;
+  historical_return_1y?: number;
+  historical_return_3y?: number;
+  historical_return_5y?: number;
+  volatility?: number;
+  max_drawdown?: number;
+  current_drawdown?: number;
+  expense_ratio?: number;
+  data_quality_score?: number;
+  data_source?: string;
+  data_status?: string;
+  data_as_of?: string;
 }
 
 export interface ValidationCheck {
@@ -84,6 +110,9 @@ export interface RecommendationResponse {
   allocation_reasons?: Record<string, string>;
   funding_gap_actions?: string[];
   goals_breakdown?: GoalRecommendationSummary[];
+
+  // Phase 7.3 Product Intelligence Extensions
+  excluded_products?: ProductExclusionSummary[];
 }
 
 export interface RecommendationSimulateRequest {

@@ -2,14 +2,17 @@ from decimal import Decimal
 from typing import Dict
 
 # ------------------------------------------------------------------------------
-# 1. Scoring Weights (Configurable)
+# 1. Scoring Weights (Configurable & Centralized)
 # ------------------------------------------------------------------------------
 # Sum of weights = 1.00
-WEIGHT_RISK_FIT: Decimal = Decimal("0.35")
-WEIGHT_HORIZON_FIT: Decimal = Decimal("0.25")
+WEIGHT_RISK_FIT: Decimal = Decimal("0.25")
+WEIGHT_HORIZON_FIT: Decimal = Decimal("0.20")
 WEIGHT_ASSET_CLASS_FIT: Decimal = Decimal("0.20")
+WEIGHT_GOAL_FIT: Decimal = Decimal("0.10")
 WEIGHT_COST_EFFICIENCY: Decimal = Decimal("0.10")
-WEIGHT_CAPACITY_COMPATIBILITY: Decimal = Decimal("0.10")
+WEIGHT_CAPACITY_COMPATIBILITY: Decimal = Decimal("0.05")
+WEIGHT_MARKET_PERFORMANCE: Decimal = Decimal("0.05")
+WEIGHT_DATA_QUALITY: Decimal = Decimal("0.05")
 
 # ------------------------------------------------------------------------------
 # 2. Base Asset Allocation Matrices by Risk Category

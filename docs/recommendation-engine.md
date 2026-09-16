@@ -1,6 +1,6 @@
-# Phase 6 & Phase 7.2: Goal-Aware Deterministic Financial Recommendation Engine
+# Phase 6, Phase 7.2 & Phase 7.3: Goal-Aware Deterministic Financial Recommendation & Product Intelligence Engine
 
-A production-grade, explainable, and 100% deterministic portfolio recommendation subsystem engineered for the **Indian Financial Ecosystem (INR ₹)**, with multi-goal awareness, horizon policy buckets, inflation indexation, and feasibility guardrails.
+A production-grade, explainable, and 100% deterministic portfolio recommendation subsystem engineered for the **Indian Financial Ecosystem (INR ₹)**, with multi-goal awareness, horizon policy buckets, inflation indexation, feasibility guardrails, and data-informed **Product Intelligence & Suitability Ranking**.
 
 ---
 
@@ -28,31 +28,42 @@ User Profile, Goals & Financial Products (DB)
    • Excludes products exceeding risk boundaries (e.g. high/very_high for conservative profiles)
    • Enforces ticket size compatibility (min_investment <= investment capacity)
    • Validates currency (INR) and domicile
+   • Captures structured exclusion audit log (`excluded_products`)
                   │
                   ▼
-   4. Deterministic Product Scoring (`scoring.py`)
-   • Risk Fit Score (0–100, 35% weight)
-   • Horizon Fit Score (0–100, 25% weight)
-   • Asset Class Alignment (0–100, 20% weight)
-   • Cost / TER Efficiency (0–100, 10% weight)
-   • Ticket Sizing Compatibility (0–100, 10% weight)
+   4. Product Intelligence & Market Historical Analytics (`product_intelligence.py`)
+   • Reuses `app/market/intelligence/analytics.py` (Returns, Volatility, Drawdown)
+   • Fetches candles via `MarketDataService` (Alpha Vantage / Demo adapters)
+   • Computes 1Y, 3Y, 5Y historical returns, annualized volatility, max drawdown, and data quality score
+   • Tracks full data provenance (`data_source`, `data_status`, `data_as_of`)
                   │
                   ▼
-   5. Portfolio Construction (`portfolio.py`)
-   • Ranks top eligible instruments per asset class
+   5. Deterministic Suitability Scoring (`scoring.py`, `constants.py`)
+   • Risk Fit Score (25% weight)
+   • Horizon Fit Score (20% weight)
+   • Asset Class Fit Score (20% weight)
+   • Financial Goal Fit Score (10% weight)
+   • Cost / TER Efficiency (10% weight)
+   • Ticket Sizing Compatibility (5% weight)
+   • Market Performance Fit (5% weight — with anti-return-chasing volatility/drawdown penalties)
+   • Data Quality Score (5% weight)
+                  │
+                  ▼
+   6. Portfolio Construction (`portfolio.py`)
+   • Ranks top eligible instruments per asset class based on total suitability score
    • Distributes exact percentage weights and rupee SIP / lump sum amounts
-   • Produces structured selection rationales for each instrument
+   • Attaches rich intelligence metadata and transparent multi-factor selection reasons
                   │
                   ▼
-   6. Portfolio Validation (`validators.py`)
+   7. Portfolio Validation (`validators.py`)
    • Verifies sum(allocations) == 100.00% (within ±0.5% tolerance)
    • Validates total SIP <= user monthly investment capacity
    • Confirms zero ineligible instruments and risk guardrail compliance
                   │
                   ▼
-   7. Persistence & Response (`models.py`, `service.py`, `endpoints/recommendations.py`)
-   • Persists audit trail in `recommendations` & `recommendation_items` tables
-   • Returns goal-aware metrics, rationale, funding actions, and per-goal breakdowns
+   8. Persistence & Response (`models.py`, `service.py`, `endpoints/recommendations.py`)
+   • Persists audit trail in `recommendations` & `recommendation_items` tables with JSON intelligence metadata
+   • Returns goal-aware metrics, rationale, funding actions, excluded products, and per-goal breakdowns
 ```
 
 ---
@@ -65,7 +76,9 @@ User Profile, Goals & Financial Products (DB)
    - Medium-term goals (3–5 years): Balances growth with volatility dampening.
    - Long-term goals (> 5 years): Allows higher growth allocations (up to 85% equity for aggressive profiles) to beat inflation.
 3. **Strict Risk Guardrails**: Goal horizon adjustments can NEVER breach the user's hard risk category ceiling (e.g., a Conservative profile with a 15-year goal is strictly capped at 30% equity).
-4. **Funding-Gap Safety Rule**: An underfunded goal (`MODERATELY_UNDERFUNDED`, `SIGNIFICANTLY_UNDERFUNDED`, or `NOT_FEASIBLE`) must **NEVER** cause the engine to recommend higher-risk speculative assets. Actionable mathematical solutions (e.g. increase monthly SIP, extend timeline, re-scope target) are provided instead.
+4. **Anti-Return-Chasing Mechanism**: Market performance weight is strictly bounded at 5% of total score. High returns with high volatility (>20% ann.) or deep drawdowns (< -25%) receive severe penalties.
+5. **Data Provenance & Transparency**: Data origins are clearly tagged as `alphavantage` (`live`/`historical`) or `demo` (`synthetic`). Synthetic data is never misrepresented as real market data.
+6. **Exclusion Audit Trail**: Products screened out during filtering or scoring provide structured audit reasons explaining why they were not selected.
 
 ---
 
@@ -85,6 +98,22 @@ User Profile, Goals & Financial Products (DB)
 | **VERY_AGGRESSIVE**| **SHORT_TERM (<3y)** | 25.00% | 55.00% | 5.00% | 15.00% |
 | **VERY_AGGRESSIVE**| **MEDIUM_TERM (3-5y)** | 70.00% | 20.00% | 10.00% | 0.00% |
 | **VERY_AGGRESSIVE**| **LONG_TERM (>5y)** | 85.00% | 10.00% | 5.00% | 0.00% |
+
+---
+
+## 📊 Product Intelligence Scoring Weights
+
+| Component | Weight | Deterministic Criteria |
+| :--- | :--- | :--- |
+| **Risk Fit** | 25.00% | Match between user risk tolerance and instrument SEBI risk tier |
+| **Horizon Fit** | 20.00% | Instrument asset class lock-in / compounding horizon alignment |
+| **Asset Class Fit** | 20.00% | Target asset class allocation priority (Equity, Debt, Gold, Cash) |
+| **Goal Fit** | 10.00% | Purpose alignment (Retirement, House, Education, Wealth) |
+| **Cost Efficiency** | 10.00% | Total Expense Ratio (TER) drag minimization (<0.25% TER = 90 pts) |
+| **Ticket Sizing** | 5.00% | Minimum investment size vs. monthly investment capacity |
+| **Market Performance** | 5.00% | Risk-adjusted 1Y return with volatility and drawdown penalties |
+| **Data Quality** | 5.00% | Sample count, history depth, and provenance verification score |
+
 
 ---
 

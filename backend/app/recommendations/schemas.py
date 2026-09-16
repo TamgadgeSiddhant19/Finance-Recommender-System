@@ -14,9 +14,19 @@ from app.schemas.financial_profile import FinancialProfileBase
 
 
 class ProductSelectionReason(BaseModel):
-    category: str = Field(..., description="Category of selection rationale (e.g., Risk Fit, Horizon, Cost Efficiency)")
+    category: str = Field(..., description="Category of selection rationale (e.g., Risk Fit, Horizon, Cost Efficiency, Market Intelligence)")
     description: str = Field(..., description="Human-readable explanation of why this product was selected")
     score_contribution: Decimal = Field(..., description="Weighted score points contributed by this factor")
+
+
+class ProductExclusionSummary(BaseModel):
+    product_id: Optional[int] = Field(default=None, description="Database ID of excluded product")
+    symbol: str = Field(..., description="Instrument symbol")
+    name: str = Field(..., description="Product name")
+    asset_class: Optional[str] = Field(default=None, description="Asset class")
+    risk_level: Optional[str] = Field(default=None, description="Risk level")
+    reason: str = Field(..., description="Deterministic reason for exclusion")
+    category: str = Field(default="Eligibility Filter", description="Exclusion classification category")
 
 
 class RecommendedPortfolioItem(BaseModel):
@@ -31,6 +41,22 @@ class RecommendedPortfolioItem(BaseModel):
     suggested_monthly_sip: Decimal = Field(..., ge=0, description="Recommended monthly SIP amount in INR")
     suggested_lump_sum: Decimal = Field(..., ge=0, description="Recommended one-time investment amount in INR")
     selection_reasons: List[ProductSelectionReason] = Field(default_factory=list, description="Deterministic selection reasons")
+
+    # Phase 7.3 Product Intelligence & Risk-Adjusted Market Features
+    risk_compatibility_score: Optional[Decimal] = Field(default=None, description="Risk alignment sub-score (0-100)")
+    goal_compatibility_score: Optional[Decimal] = Field(default=None, description="Goal objective alignment sub-score (0-100)")
+    horizon_compatibility_score: Optional[Decimal] = Field(default=None, description="Time-horizon alignment sub-score (0-100)")
+    historical_return_1y: Optional[Decimal] = Field(default=None, description="1-year historical percentage return (Historical, not expected future return)")
+    historical_return_3y: Optional[Decimal] = Field(default=None, description="3-year historical percentage return")
+    historical_return_5y: Optional[Decimal] = Field(default=None, description="5-year historical percentage return")
+    volatility: Optional[Decimal] = Field(default=None, description="Annualized historical volatility (%)")
+    max_drawdown: Optional[Decimal] = Field(default=None, description="Maximum historical peak-to-trough decline (%)")
+    current_drawdown: Optional[Decimal] = Field(default=None, description="Current drawdown percentage from peak (%)")
+    expense_ratio: Optional[Decimal] = Field(default=None, description="Total Expense Ratio (TER)")
+    data_quality_score: Optional[Decimal] = Field(default=None, description="Data verification quality score (0-100)")
+    data_source: Optional[str] = Field(default="master_catalog", description="Source provider: alphavantage, upstox, demo, master_catalog")
+    data_status: Optional[str] = Field(default="unavailable", description="Data status: historical, live, synthetic, unavailable")
+    data_as_of: Optional[datetime] = Field(default=None, description="Timestamp of latest observation candle")
 
 
 class ValidationCheck(BaseModel):
@@ -96,6 +122,9 @@ class RecommendationResponse(BaseModel):
     allocation_reasons: Optional[Dict[str, str]] = Field(default=None, description="Deterministic per-asset-class rationale statements")
     funding_gap_actions: Optional[List[str]] = Field(default_factory=list, description="Deterministic actionable steps for funding optimization")
     goals_breakdown: Optional[List[GoalRecommendationSummary]] = Field(default_factory=list, description="Individual goal projections and priority allocation breakdown")
+
+    # Phase 7.3 Product Intelligence & Exclusion Explanations
+    excluded_products: List[ProductExclusionSummary] = Field(default_factory=list, description="Transparent exclusion audit trail")
 
     model_config = ConfigDict(from_attributes=True)
 

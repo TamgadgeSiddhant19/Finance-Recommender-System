@@ -1,3 +1,4 @@
+from datetime import datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Optional, Sequence, Union
 from sqlalchemy import desc, select
@@ -9,6 +10,8 @@ from app.financial_data.repository import FinancialProductRepository
 from app.financial_data.schemas import FinancialProductResponse
 
 from app.goals.calculator import calculate_complete_goal_projection, quantize_dec
+from app.market.schemas import HistoricalCandle
+from app.market.service import get_market_data_service
 from app.models.financial_goal import FinancialGoal
 from app.models.financial_profile import FinancialProfile
 from app.models.user import User
@@ -25,9 +28,11 @@ from app.recommendations.policy import (
     generate_funding_gap_actions,
 )
 from app.recommendations.portfolio import construct_portfolio
+from app.recommendations.product_intelligence import build_product_intelligence
 from app.recommendations.schemas import (
     GoalRecommendationSummary,
     PortfolioValidationReport,
+    ProductExclusionSummary,
     ProductSelectionReason,
     RecommendationHistoryItem,
     RecommendationResponse,
@@ -50,7 +55,7 @@ class RecommendationService:
     """
     Deterministic Financial Recommendation Engine orchestrator:
     Combines profile data, risk profile, goal time-horizons, Phase 7.1 mathematical projections,
-    and product catalog to construct explainable, validated investment portfolios.
+    Phase 7.2 goal-aware allocation policies, and Phase 7.3 product intelligence metrics.
     """
 
     @classmethod
@@ -60,6 +65,7 @@ class RecommendationService:
         goals: Sequence[GoalTypeUnion] = (),
         available_products: Sequence[ProductTypeUnion] = (),
         user_id: Optional[int] = None,
+        product_market_candles: Optional[Dict[str, List[HistoricalCandle]]] = None,
     ) -> RecommendationResponse:
         """
         Pure deterministic recommendation generator (Stateless).
@@ -114,13 +120,11 @@ class RecommendationService:
                     monthly_contribution=Decimal("0.00"),
                 )
 
-                # Allocate monthly capacity: give what's required up to remaining capacity, or share remaining
                 allocated_sip = min(remaining_capacity, prelim_proj.required_monthly_contribution)
                 if allocated_sip <= Decimal("0.00") and remaining_capacity > Decimal("0.00"):
                     allocated_sip = remaining_capacity
                 remaining_capacity = max(Decimal("0.00"), remaining_capacity - allocated_sip)
 
-                # Full projection with allocated contribution
                 proj = calculate_complete_goal_projection(
                     target_amount=g_target,
                     current_amount=g_current,
@@ -169,15 +173,25 @@ class RecommendationService:
         )
 
         # 4. Product Eligibility Filtering
-        eligible_products, exclusions = filter_eligible_products(
+        eligible_products, raw_exclusions = filter_eligible_products(
             products=available_products,
             risk_category=risk_category,
             investment_capacity=monthly_capacity,
         )
 
         eligible_ids = {p.id for p in eligible_products}
+        excluded_products: List[ProductExclusionSummary] = [
+            ProductExclusionSummary(
+                product_id=ex.get("product_id"),
+                symbol=ex.get("symbol", ""),
+                name=ex.get("name", ""),
+                reason=ex.get("reason", "Filtered by suitability constraints"),
+                category="Risk Limit" if "risk" in ex.get("reason", "").lower() else "Capacity Constraint",
+            )
+            for ex in raw_exclusions
+        ]
 
-        # 5. Deterministic Product Scoring
+        # 5. Deterministic Product Scoring & Product Intelligence
         target_dict = {
             "equity": target_alloc.equity_pct,
             "debt": target_alloc.debt_pct,
@@ -185,16 +199,27 @@ class RecommendationService:
             "cash": target_alloc.cash_pct,
         }
 
+        candle_map = product_market_candles or {}
         scored_products: List[tuple] = []
+
         for prod in eligible_products:
-            score, reasons = score_product(
+            prod_candles = candle_map.get(prod.symbol) or candle_map.get(prod.symbol.upper()) or []
+            intel = build_product_intelligence(
+                product=prod,
+                user_risk_cat=risk_category,
+                monthly_capacity=monthly_capacity,
+                goals=valid_goals,
+                candles=prod_candles,
+            )
+            score, reasons, _ = score_product(
                 product=prod,
                 user_risk_cat=risk_category,
                 monthly_capacity=monthly_capacity,
                 target_allocation_dict=target_dict,
                 goals=valid_goals,
+                intelligence_report=intel,
             )
-            scored_products.append((prod, score, reasons))
+            scored_products.append((prod, score, reasons, intel))
 
         # 6. Candidate Portfolio Construction
         portfolio_items = construct_portfolio(
@@ -246,6 +271,7 @@ class RecommendationService:
             allocation_reasons=allocation_reasons,
             funding_gap_actions=funding_gap_actions,
             goals_breakdown=goals_breakdown,
+            excluded_products=excluded_products,
         )
 
     @classmethod
@@ -256,7 +282,8 @@ class RecommendationService:
     ) -> RecommendationResponse:
         """
         Loads user, profile, goals, and products from database,
-        computes recommendation, persists record, and returns response.
+        queries MarketDataService for real/historical candles,
+        computes recommendation with product intelligence, persists record, and returns response.
         """
         # 1. Fetch User
         user_res = await db.execute(select(User).where(User.id == user_id))
@@ -282,15 +309,27 @@ class RecommendationService:
         products_res = await db.execute(select(FinancialProduct))
         products = list(products_res.scalars().all())
 
-        # 5. Generate Recommendation
+        # 5. Fetch available market candle history via MarketDataService
+        market_service = get_market_data_service()
+        candle_map: Dict[str, List[HistoricalCandle]] = {}
+        for p in products:
+            try:
+                candles = await market_service.get_historical_candles(p.symbol)
+                if candles:
+                    candle_map[p.symbol] = candles
+            except Exception:
+                pass
+
+        # 6. Generate Recommendation with Product Intelligence
         rec_resp = cls.generate_recommendation(
             profile=profile,
             goals=goals,
             available_products=products,
             user_id=user_id,
+            product_market_candles=candle_map,
         )
 
-        # 6. Build goal metadata json for audit and detail views
+        # 7. Build goal metadata json for audit and detail views
         goal_metadata = {
             "nominal_target": float(rec_resp.nominal_target) if rec_resp.nominal_target is not None else None,
             "inflation_adjusted_target": float(rec_resp.inflation_adjusted_target) if rec_resp.inflation_adjusted_target is not None else None,
@@ -300,9 +339,10 @@ class RecommendationService:
             "allocation_reasons": rec_resp.allocation_reasons,
             "funding_gap_actions": rec_resp.funding_gap_actions,
             "goals_breakdown": [g.model_dump(mode="json") for g in rec_resp.goals_breakdown],
+            "excluded_products": [ex.model_dump(mode="json") for ex in rec_resp.excluded_products],
         }
 
-        # 7. Persist Recommendation to Database
+        # 8. Persist Recommendation to Database
         db_rec = Recommendation(
             user_id=user_id,
             risk_category=rec_resp.risk_category,
@@ -325,6 +365,23 @@ class RecommendationService:
 
         for item in rec_resp.portfolio_items:
             reasons_json = [r.model_dump(mode="json") for r in item.selection_reasons]
+            intel_meta = {
+                "risk_compatibility_score": float(item.risk_compatibility_score) if item.risk_compatibility_score is not None else None,
+                "goal_compatibility_score": float(item.goal_compatibility_score) if item.goal_compatibility_score is not None else None,
+                "horizon_compatibility_score": float(item.horizon_compatibility_score) if item.horizon_compatibility_score is not None else None,
+                "historical_return_1y": float(item.historical_return_1y) if item.historical_return_1y is not None else None,
+                "historical_return_3y": float(item.historical_return_3y) if item.historical_return_3y is not None else None,
+                "historical_return_5y": float(item.historical_return_5y) if item.historical_return_5y is not None else None,
+                "volatility": float(item.volatility) if item.volatility is not None else None,
+                "max_drawdown": float(item.max_drawdown) if item.max_drawdown is not None else None,
+                "current_drawdown": float(item.current_drawdown) if item.current_drawdown is not None else None,
+                "expense_ratio": float(item.expense_ratio) if item.expense_ratio is not None else None,
+                "data_quality_score": float(item.data_quality_score) if item.data_quality_score is not None else None,
+                "data_source": item.data_source,
+                "data_status": item.data_status,
+                "data_as_of": item.data_as_of.isoformat() if item.data_as_of else None,
+            }
+
             db_item = RecommendationItem(
                 recommendation_id=db_rec.id,
                 financial_product_id=item.product_id,
@@ -338,6 +395,7 @@ class RecommendationService:
                 monthly_sip_amount=item.suggested_monthly_sip,
                 lump_sum_amount=item.suggested_lump_sum,
                 selection_reasons=reasons_json,
+                intelligence_metadata=intel_meta,
             )
             db.add(db_item)
 
@@ -375,7 +433,7 @@ class RecommendationService:
         recommendation_id: int,
     ) -> Optional[RecommendationResponse]:
         """
-        Retrieves full details of a specific stored recommendation.
+        Retrieves full details of a specific stored recommendation including product intelligence features.
         """
         stmt = (
             select(Recommendation)
@@ -390,6 +448,9 @@ class RecommendationService:
         portfolio_items: List[RecommendedPortfolioItem] = []
         for it in rec.items:
             reasons = [ProductSelectionReason(**r) for r in (it.selection_reasons or [])]
+            imeta = it.intelligence_metadata or {}
+            as_of_dt = datetime.fromisoformat(imeta["data_as_of"]) if imeta.get("data_as_of") else None
+
             portfolio_items.append(
                 RecommendedPortfolioItem(
                     product_id=it.financial_product_id,
@@ -403,6 +464,20 @@ class RecommendationService:
                     suggested_monthly_sip=it.monthly_sip_amount,
                     suggested_lump_sum=it.lump_sum_amount,
                     selection_reasons=reasons,
+                    risk_compatibility_score=Decimal(str(imeta["risk_compatibility_score"])) if imeta.get("risk_compatibility_score") is not None else None,
+                    goal_compatibility_score=Decimal(str(imeta["goal_compatibility_score"])) if imeta.get("goal_compatibility_score") is not None else None,
+                    horizon_compatibility_score=Decimal(str(imeta["horizon_compatibility_score"])) if imeta.get("horizon_compatibility_score") is not None else None,
+                    historical_return_1y=Decimal(str(imeta["historical_return_1y"])) if imeta.get("historical_return_1y") is not None else None,
+                    historical_return_3y=Decimal(str(imeta["historical_return_3y"])) if imeta.get("historical_return_3y") is not None else None,
+                    historical_return_5y=Decimal(str(imeta["historical_return_5y"])) if imeta.get("historical_return_5y") is not None else None,
+                    volatility=Decimal(str(imeta["volatility"])) if imeta.get("volatility") is not None else None,
+                    max_drawdown=Decimal(str(imeta["max_drawdown"])) if imeta.get("max_drawdown") is not None else None,
+                    current_drawdown=Decimal(str(imeta["current_drawdown"])) if imeta.get("current_drawdown") is not None else None,
+                    expense_ratio=Decimal(str(imeta["expense_ratio"])) if imeta.get("expense_ratio") is not None else None,
+                    data_quality_score=Decimal(str(imeta["data_quality_score"])) if imeta.get("data_quality_score") is not None else None,
+                    data_source=imeta.get("data_source", "master_catalog"),
+                    data_status=imeta.get("data_status", "unavailable"),
+                    data_as_of=as_of_dt,
                 )
             )
 
@@ -417,6 +492,7 @@ class RecommendationService:
         meta = rec.goal_metadata or {}
 
         goals_breakdown = [GoalRecommendationSummary(**g) for g in meta.get("goals_breakdown", [])]
+        excluded_products = [ProductExclusionSummary(**ex) for ex in meta.get("excluded_products", [])]
 
         return RecommendationResponse(
             recommendation_id=rec.id,
@@ -441,6 +517,7 @@ class RecommendationService:
             allocation_reasons=meta.get("allocation_reasons"),
             funding_gap_actions=meta.get("funding_gap_actions", []),
             goals_breakdown=goals_breakdown,
+            excluded_products=excluded_products,
         )
 
     @staticmethod
@@ -478,6 +555,10 @@ class RecommendationService:
                     "monthly_sip_inr": float(item.suggested_monthly_sip),
                     "suitability_score": float(item.suitability_score),
                     "selection_reasons": [r.description for r in item.selection_reasons],
+                    "historical_return_1y": float(item.historical_return_1y) if item.historical_return_1y is not None else None,
+                    "volatility": float(item.volatility) if item.volatility is not None else None,
+                    "max_drawdown": float(item.max_drawdown) if item.max_drawdown is not None else None,
+                    "data_source": item.data_source,
                 }
                 for item in rec.portfolio_items
             ],

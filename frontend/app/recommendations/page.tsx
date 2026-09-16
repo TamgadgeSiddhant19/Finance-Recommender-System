@@ -173,8 +173,10 @@ function RecommendationsContent() {
   const allocReasons = recommendation.allocation_reasons || {};
   const fundingActions = recommendation.funding_gap_actions || [];
   const goalsBreakdown = recommendation.goals_breakdown || [];
+  const excludedProducts = recommendation.excluded_products || [];
   const horizonBucket = recommendation.goal_horizon_bucket || "GENERAL_WEALTH";
   const feasibilityStatus = recommendation.goal_feasibility_status || "ON_TRACK";
+  const [showExcluded, setShowExcluded] = useState(false);
 
   const getFeasibilityBadge = (status: string) => {
     switch (status?.toUpperCase()) {
@@ -204,6 +206,31 @@ function RecommendationsContent() {
     }
   };
 
+  const getDataSourceBadge = (source?: string, status?: string) => {
+    const src = (source || "master_catalog").toLowerCase();
+    const stat = (status || "").toLowerCase();
+
+    if (src.includes("alpha") || src.includes("alphavantage")) {
+      return (
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+          Alpha Vantage ({stat === "live" ? "Live" : "Historical"})
+        </span>
+      );
+    }
+    if (src.includes("demo") || stat === "synthetic") {
+      return (
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
+          Demo (Synthetic)
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+        Catalog Baseline
+      </span>
+    );
+  };
+
   return (
     <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
       {/* Header with Timestamp & Re-generate */}
@@ -211,10 +238,10 @@ function RecommendationsContent() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
             <FileCheck className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-            Goal-Aware Asset Allocation &amp; Recommendation
+            Product Intelligence &amp; Asset Allocation
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Deterministic portfolio optimization harmonizing goal time horizons, inflation targets, and SEBI risk guardrails.
+            Deterministic suitability ranking combining SEBI risk guardrails, goal horizons, and market intelligence metrics.
           </p>
         </div>
 
@@ -427,52 +454,100 @@ function RecommendationsContent() {
         </Card>
       </div>
 
-      {/* 4. Actionable Product Selection Matrix */}
+      {/* 4. Actionable Product Selection Matrix with Intelligence Features */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Layers className="w-4 h-4 text-emerald-400" />
-            Recommended Monthly Capital Deployment
+            Recommended Products &amp; Product Intelligence Analysis
           </CardTitle>
-          <CardDescription>Selected SEBI-approved financial products with exact monthly SIP amounts</CardDescription>
+          <CardDescription>
+            Selected SEBI-approved instruments with multi-factor suitability scoring, risk-adjusted metrics, and data provenance.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="divide-y divide-slate-200 dark:divide-slate-800/80">
             {portfolioItems.map((item, idx) => (
-              <div key={item.product_id || idx} className="py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="space-y-1 md:w-1/3">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-slate-900 dark:text-slate-100 text-sm">{item.name}</span>
-                    <Badge
-                      variant={
-                        item.asset_class?.toLowerCase().includes("equity")
-                          ? "emerald"
-                          : item.asset_class?.toLowerCase().includes("debt")
-                          ? "blue"
-                          : item.asset_class?.toLowerCase().includes("gold")
-                          ? "amber"
-                          : "slate"
-                      }
-                      size="sm"
-                    >
-                      {item.allocation_percentage}% Weight
-                    </Badge>
+              <div key={item.product_id || idx} className="py-4 space-y-3">
+                <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                  {/* Left Column: Product info & Suitability */}
+                  <div className="space-y-1.5 md:w-1/3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-bold text-slate-900 dark:text-slate-100 text-sm">{item.name}</span>
+                      <Badge
+                        variant={
+                          item.asset_class?.toLowerCase().includes("equity")
+                            ? "emerald"
+                            : item.asset_class?.toLowerCase().includes("debt")
+                            ? "blue"
+                            : item.asset_class?.toLowerCase().includes("gold")
+                            ? "amber"
+                            : "slate"
+                        }
+                        size="sm"
+                      >
+                        {item.allocation_percentage}% Weight
+                      </Badge>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                      <span>Ticker: <strong className="text-slate-700 dark:text-slate-300">{item.symbol}</strong></span>
+                      <span>•</span>
+                      <span>Risk: <strong className="capitalize text-slate-700 dark:text-slate-300">{item.risk_level?.replace("_", " ")}</strong></span>
+                      <span>•</span>
+                      {getDataSourceBadge(item.data_source, item.data_status)}
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-0.5">
+                      <span className="text-xs text-slate-500 dark:text-slate-400">Suitability Score:</span>
+                      <span className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400">
+                        {Number(item.suitability_score ?? 0).toFixed(1)}/100
+                      </span>
+                    </div>
                   </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Ticker: <strong className="text-slate-700 dark:text-slate-300">{item.symbol}</strong> • Suitability Score: <strong className="text-emerald-600 dark:text-emerald-400">{Number(item.suitability_score ?? 0).toFixed(1)}/100</strong>
-                  </p>
-                </div>
 
-                <div className="md:w-1/3">
-                  <span className="text-xs text-slate-500 dark:text-slate-400">Recommended Monthly SIP</span>
-                  <p className="text-lg font-extrabold text-emerald-600 dark:text-emerald-400">{formatINR(item.suggested_monthly_sip)}/mo</p>
-                </div>
+                  {/* Middle Column: SIP & Intelligence Metrics */}
+                  <div className="md:w-1/3 space-y-2">
+                    <div>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">Recommended Monthly SIP</span>
+                      <p className="text-lg font-extrabold text-emerald-600 dark:text-emerald-400">{formatINR(item.suggested_monthly_sip)}/mo</p>
+                    </div>
 
-                <div className="md:w-1/3 text-xs space-y-1">
-                  <span className="text-slate-500 dark:text-slate-400 font-semibold">Selection Rationale:</span>
-                  {(item.selection_reasons || []).map((r, rIdx) => (
-                    <p key={rIdx} className="text-slate-600 dark:text-slate-300 text-[11px]">• {typeof r === "string" ? r : r.description}</p>
-                  ))}
+                    {/* Historical Market Intelligence Grid */}
+                    <div className="grid grid-cols-3 gap-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/40 text-[10px]">
+                      <div>
+                        <span className="text-slate-400 block">1Y Return</span>
+                        <span className={`font-semibold ${(item.historical_return_1y ?? 0) >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                          {item.historical_return_1y !== undefined && item.historical_return_1y !== null ? `${item.historical_return_1y > 0 ? "+" : ""}${Number(item.historical_return_1y).toFixed(1)}%` : "N/A"}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block">Volatility (Ann.)</span>
+                        <span className="font-semibold text-slate-700 dark:text-slate-300">
+                          {item.volatility !== undefined && item.volatility !== null ? `${Number(item.volatility).toFixed(1)}%` : "N/A"}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block">Max Drawdown</span>
+                        <span className="font-semibold text-amber-600 dark:text-amber-400">
+                          {item.max_drawdown !== undefined && item.max_drawdown !== null ? `${Number(item.max_drawdown).toFixed(1)}%` : "N/A"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Selection Rationale Breakdown */}
+                  <div className="md:w-1/3 text-xs space-y-1.5">
+                    <span className="text-slate-500 dark:text-slate-400 font-semibold block">Why Selected (Factor Breakdown):</span>
+                    <div className="space-y-1">
+                      {(item.selection_reasons || []).map((r, rIdx) => (
+                        <div key={rIdx} className="text-slate-600 dark:text-slate-300 text-[11px] flex items-start gap-1.5">
+                          <span className="text-emerald-500 font-bold shrink-0">•</span>
+                          <span>{typeof r === "string" ? r : r.description}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
@@ -480,7 +555,66 @@ function RecommendationsContent() {
         </CardContent>
       </Card>
 
-      {/* 5. Multi-Goal Priority Breakdown (If multiple goals exist) */}
+      {/* 5. Excluded Products Audit Trail */}
+      {excludedProducts.length > 0 && (
+        <Card className="border-slate-200 dark:border-slate-800">
+          <CardHeader className="cursor-pointer" onClick={() => setShowExcluded(!showExcluded)}>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                  <ShieldAlert className="w-4 h-4 text-slate-400" />
+                  Why Other Products Were Excluded ({excludedProducts.length} items screened out)
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Transparent suitability audit trail showing why non-recommended catalog products were rejected.
+                </CardDescription>
+              </div>
+              <Button variant="ghost" size="sm" className="text-xs text-slate-500">
+                {showExcluded ? "Hide Excluded Items" : "View Excluded Items"}
+              </Button>
+            </div>
+          </CardHeader>
+
+          {showExcluded && (
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left">
+                  <thead className="text-[11px] uppercase text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                    <tr>
+                      <th className="py-2 pr-4">Product</th>
+                      <th className="py-2 pr-4">Asset Class</th>
+                      <th className="py-2 pr-4">Risk Level</th>
+                      <th className="py-2 pr-4">Exclusion Stage</th>
+                      <th className="py-2">Deterministic Reason</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                    {excludedProducts.map((ex, exIdx) => (
+                      <tr key={ex.product_id || exIdx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                        <td className="py-2.5 pr-4 font-semibold text-slate-800 dark:text-slate-200">
+                          {ex.name} <span className="text-slate-400 text-[10px]">({ex.symbol})</span>
+                        </td>
+                        <td className="py-2.5 pr-4 capitalize text-slate-600 dark:text-slate-400">{ex.asset_class || "—"}</td>
+                        <td className="py-2.5 pr-4 capitalize text-slate-600 dark:text-slate-400">{ex.risk_level?.replace("_", " ") || "—"}</td>
+                        <td className="py-2.5 pr-4">
+                          <Badge variant="slate" size="sm" className="text-[10px] capitalize">
+                            {ex.category?.replace("_", " ") || "Filter"}
+                          </Badge>
+                        </td>
+                        <td className="py-2.5 text-slate-600 dark:text-slate-300 text-[11px] leading-tight">
+                          {ex.reason}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          )}
+        </Card>
+      )}
+
+      {/* 6. Multi-Goal Priority Breakdown (If multiple goals exist) */}
       {goalsBreakdown.length > 1 && (
         <Card>
           <CardHeader>
@@ -514,6 +648,17 @@ function RecommendationsContent() {
           </CardContent>
         </Card>
       )}
+
+      {/* 7. Regulatory Disclaimers & Performance Integrity Notice */}
+      <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400 space-y-1.5 leading-relaxed">
+        <p className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+          <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
+          Financial &amp; Market Intelligence Disclaimer
+        </p>
+        <p>
+          Historical returns, annualized volatility, and drawdown statistics are provided for informational and analytical purposes only. Past performance is not indicative of future returns. Product intelligence scoring strictly bounds market performance weight (5%) and penalizes high volatility/drawdowns to prevent return chasing. All recommendations are computed deterministically under SEBI risk suitability rules.
+        </p>
+      </div>
     </main>
   );
 }
