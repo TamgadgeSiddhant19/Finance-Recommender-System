@@ -41,6 +41,24 @@ export interface TargetAllocationSummary {
   cash_pct: number;
 }
 
+export interface GoalRecommendationSummary {
+  goal_id?: number;
+  goal_type: string;
+  target_amount: number;
+  current_amount: number;
+  target_years: number;
+  priority: string;
+  feasibility_status: string;
+  funding_ratio_pct: number;
+  projected_corpus: number;
+  inflation_adjusted_target: number;
+  shortfall_or_surplus: number;
+  allocated_monthly_sip: number;
+  required_monthly_sip: number;
+  horizon_bucket: string;
+  funding_gap_actions: string[];
+}
+
 export interface RecommendationResponse {
   recommendation_id?: number;
   user_id?: number;
@@ -53,6 +71,19 @@ export interface RecommendationResponse {
   total_lump_sum: number;
   validation_report: PortfolioValidationReport;
   created_at: string;
+
+  // Phase 7.2 Goal-Aware Allocation Extensions
+  goal_horizon_bucket?: string;
+  goal_feasibility_status?: string;
+  nominal_target?: number;
+  inflation_adjusted_target?: number;
+  projected_corpus?: number;
+  funding_ratio?: number;
+  goal_shortfall_or_surplus?: number;
+  goal_aware_allocation?: TargetAllocationSummary;
+  allocation_reasons?: Record<string, string>;
+  funding_gap_actions?: string[];
+  goals_breakdown?: GoalRecommendationSummary[];
 }
 
 export interface RecommendationSimulateRequest {
@@ -73,4 +104,6 @@ export interface RecommendationHistoryItem {
   target_cash_pct: number;
   is_valid: boolean;
   created_at: string;
+  goal_horizon_bucket?: string;
+  goal_feasibility_status?: string;
 }

@@ -36,6 +36,12 @@ class Recommendation(Base):
     total_lump_sum: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0.00"), nullable=False)
     is_valid: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     validation_details: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)
+
+    # Goal-Aware Allocation Extensions
+    goal_horizon_bucket: Mapped[Optional[str]] = mapped_column(String(50), default="GENERAL_WEALTH", nullable=True)
+    goal_feasibility_status: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    goal_metadata: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

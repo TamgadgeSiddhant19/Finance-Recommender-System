@@ -53,6 +53,24 @@ class TargetAllocationSummary(BaseModel):
     cash_pct: Decimal = Field(..., description="Target cash/liquid allocation percentage")
 
 
+class GoalRecommendationSummary(BaseModel):
+    goal_id: Optional[int] = Field(default=None, description="Database ID of goal if persisted")
+    goal_type: str = Field(..., description="Goal classification type")
+    target_amount: Decimal = Field(..., description="Nominal target amount in INR")
+    current_amount: Decimal = Field(..., description="Currently accumulated savings in INR")
+    target_years: int = Field(..., description="Investment horizon in years")
+    priority: str = Field(..., description="Priority level (high, medium, low)")
+    feasibility_status: str = Field(..., description="Feasibility status (ON_TRACK, MODERATELY_UNDERFUNDED, SIGNIFICANTLY_UNDERFUNDED, NOT_FEASIBLE)")
+    funding_ratio_pct: Decimal = Field(..., description="Percentage of inflation-adjusted target covered")
+    projected_corpus: Decimal = Field(..., description="Estimated future value of savings and SIP in INR")
+    inflation_adjusted_target: Decimal = Field(..., description="Inflation-adjusted corpus target in INR")
+    shortfall_or_surplus: Decimal = Field(..., description="Surplus (+) or Shortfall (-) in INR")
+    allocated_monthly_sip: Decimal = Field(..., description="Portion of monthly capacity allocated to this goal in INR")
+    required_monthly_sip: Decimal = Field(..., description="SIP required to fully reach target in INR")
+    horizon_bucket: str = Field(..., description="Horizon bucket: SHORT_TERM, MEDIUM_TERM, LONG_TERM")
+    funding_gap_actions: List[str] = Field(default_factory=list, description="Deterministic actionable steps")
+
+
 class RecommendationResponse(BaseModel):
     recommendation_id: Optional[int] = Field(default=None, description="Database ID of stored recommendation if persisted")
     user_id: Optional[int] = Field(default=None, description="User ID for which recommendation was generated")
@@ -66,8 +84,20 @@ class RecommendationResponse(BaseModel):
     validation_report: PortfolioValidationReport = Field(..., description="Portfolio constraint verification results")
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Timestamp of generation")
 
-    model_config = ConfigDict(from_attributes=True)
+    # Phase 7.2 Goal-Aware Allocation Extensions
+    goal_horizon_bucket: Optional[str] = Field(default="GENERAL_WEALTH", description="Primary goal horizon bucket (SHORT_TERM, MEDIUM_TERM, LONG_TERM, GENERAL_WEALTH)")
+    goal_feasibility_status: Optional[str] = Field(default=None, description="Primary goal feasibility classification")
+    nominal_target: Optional[Decimal] = Field(default=None, description="Nominal target amount of primary/aggregate goal in INR")
+    inflation_adjusted_target: Optional[Decimal] = Field(default=None, description="Inflation-adjusted target amount in INR")
+    projected_corpus: Optional[Decimal] = Field(default=None, description="Total projected corpus across current savings + SIP in INR")
+    funding_ratio: Optional[Decimal] = Field(default=None, description="Funding ratio percentage")
+    goal_shortfall_or_surplus: Optional[Decimal] = Field(default=None, description="Surplus (+) or Shortfall (-) relative to inflation-adjusted target in INR")
+    goal_aware_allocation: Optional[TargetAllocationSummary] = Field(default=None, description="Goal-aware tactical asset allocation breakdown")
+    allocation_reasons: Optional[Dict[str, str]] = Field(default=None, description="Deterministic per-asset-class rationale statements")
+    funding_gap_actions: Optional[List[str]] = Field(default_factory=list, description="Deterministic actionable steps for funding optimization")
+    goals_breakdown: Optional[List[GoalRecommendationSummary]] = Field(default_factory=list, description="Individual goal projections and priority allocation breakdown")
 
+    model_config = ConfigDict(from_attributes=True)
 
 
 class RecommendationSimulateRequest(BaseModel):
@@ -91,5 +121,7 @@ class RecommendationHistoryItem(BaseModel):
     target_cash_pct: Decimal
     is_valid: bool
     created_at: datetime
+    goal_horizon_bucket: Optional[str] = None
+    goal_feasibility_status: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
