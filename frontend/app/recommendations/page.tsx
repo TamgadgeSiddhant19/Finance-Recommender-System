@@ -247,6 +247,19 @@ function RecommendationsContent() {
     );
   };
 
+  const currentSurplusCapacity = profile ? (profile.monthly_investment_capacity || (profile.monthly_income - profile.monthly_expenses)) : 0;
+  const isOutOfSync = Boolean(
+    recommendation && (
+      (analysis?.risk && (
+        recommendation.risk_score !== analysis.risk.risk_score ||
+        recommendation.risk_category?.toUpperCase() !== analysis.risk.risk_category?.toUpperCase()
+      )) ||
+      (profile && Math.abs(Number(recommendation.monthly_investment_capacity) - Number(currentSurplusCapacity)) > 1) ||
+      (goals.length > 0 && Math.abs(Number(recommendation.nominal_target || 0) - Number(goals[0].target_amount || 0)) > 1) ||
+      (goals.length !== (recommendation.goals_breakdown?.length || 0))
+    )
+  );
+
   return (
     <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
       {/* Header with Engine Version, Timestamp & Audit Drawer */}
@@ -300,7 +313,32 @@ function RecommendationsContent() {
         </div>
       </div>
 
+      {/* Out-of-sync banner if plan/profile changed */}
+      {isOutOfSync && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-500 dark:text-amber-400 shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-amber-900 dark:text-amber-300">Financial Plan Updated — Recommendations Out of Sync</p>
+              <p className="text-xs text-amber-800 dark:text-amber-200/80">
+                Your profile parameters, risk assessment, or financial goals have been updated. Re-calculate to align asset allocation and instrument scoring with your latest data.
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            onClick={handleGenerate}
+            isLoading={isGenerating}
+            className="shrink-0 bg-amber-600 hover:bg-amber-500 text-white font-bold gap-1.5"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            Sync Roadmap Now
+          </Button>
+        </div>
+      )}
+
       {/* 1. Goal Context & Feasibility Overview */}
+
       <Card className="bg-gradient-to-r from-emerald-50 via-white to-white dark:from-emerald-950/30 dark:via-slate-900 dark:to-slate-900 border-emerald-200 dark:border-emerald-500/30 shadow-xs">
         <CardContent className="p-6 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">

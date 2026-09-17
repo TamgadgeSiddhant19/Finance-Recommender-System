@@ -1,0 +1,28 @@
+# IRDAI Master Circular: Protection of Policyholders Interests and Insurance Regulations
+# Organization: IRDAI
+# Document Type: master_circular
+# Topic: insurance
+# Asset Class: insurance
+# Product Type: life_insurance
+# Jurisdiction: IN
+# Publication Date: 2024-05-15
+# Effective Date: 2024-06-01
+# Source URL: https://irdai.gov.in/master-circulars
+# Version: 1.0
+# Last Updated: 2024-06-01
+# Is Active: True
+
+## Section 1: Statutory Mandate of IRDAI
+The Insurance Regulatory and Development Authority of India (IRDAI) is the statutory regulatory body established under the IRDA Act, 1999 to protect the interests of policyholders, regulate the insurance industry, and ensure financial solvency of life, general, and standalone health insurance companies in India.
+
+## Section 2: Term Life Insurance and Pure Protection Products
+### Subsection 2.1: Pure Term Life Insurance
+- Term insurance provides pure life cover (sum assured) to nominees in the event of death during the policy term with no maturity survival benefit.
+- Recommendation Benchmark: Financial planning norms recommend a minimum life cover of 10 to 15 times annual income.
+
+## Section 3: Free-Look Period and Claim Settlement Norms
+### Subsection 3.1: 30-Day Free Look Window
+- Policyholders have a statutory 30-day free-look period for all electronic and physical policies from receipt to review policy terms and seek refund if dissatisfied.
+
+### Subsection 3.2: Claim Settlement Timelines
+- Uncontestable Claims (Section 45 of Insurance Act, 1938): No policy of life insurance can be called into question on any ground whatsoever after the expiry of 3 years from the date of issuance or revival.

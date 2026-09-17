@@ -1,0 +1,36 @@
+# SEBI & AMFI Investor Education Guide: Principles of Asset Allocation and Compounding
+# Organization: Investor Education
+# Document Type: educational_guide
+# Topic: financial_planning
+# Asset Class: all
+# Product Type: educational
+# Jurisdiction: IN
+# Publication Date: 2024-01-01
+# Effective Date: 2024-01-01
+# Source URL: https://investor.sebi.gov.in/financial-literacy.html
+# Version: 2.0
+# Last Updated: 2024-06-01
+# Is Active: True
+
+## Section 1: Foundations of Financial Planning & Asset Allocation
+Asset allocation is the strategy of dividing an investment portfolio among different asset categories—such as Equity, Debt, Gold, and Liquid Cash. Academic and market research shows that asset allocation is responsible for over 90% of long-term portfolio return variation, far outweighing individual stock picking or market timing.
+
+## Section 2: Core Asset Classes and Role in Portfolios
+### Subsection 2.1: Equity (Growth Engine)
+- Role: Beating long-term inflation and wealth compounding.
+- Horizon Requirement: 5 to 7+ years minimum to withstand interim market cycles and volatility.
+
+### Subsection 2.2: Debt & Fixed Income (Capital Preservation)
+- Role: Downside buffer, stable regular income, and near-term capital preservation.
+- Horizon Requirement: 1 to 3 years for short duration, overnight/liquid for emergency reserves.
+
+### Subsection 2.3: Gold & Commodities (Inflation & Geopolitical Hedge)
+- Role: Inverse correlation with equity during crisis periods, currency depreciation hedge. Recommended portfolio allocation: 5% to 15%.
+
+### Subsection 2.4: Emergency Liquid Reserve
+- Role: Unplanned emergencies, liquidity needs. Recommended allocation: 3 to 6 months of mandatory monthly household expenses in bank savings/liquid funds.
+
+## Section 3: Time Horizon and Goal Alignment
+- Short-Term Goals (< 3 years): 0% to 20% Equity, 80% to 100% Debt & Liquid Cash. Never risk short-term capital in high-beta equity.
+- Medium-Term Goals (3 to 5 years): 30% to 50% Equity, 40% to 60% Debt, 10% Gold.
+- Long-Term Goals (> 5 years): 50% to 75% Equity, 20% to 40% Debt, 10% Gold.

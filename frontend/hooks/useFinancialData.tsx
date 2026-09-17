@@ -18,7 +18,10 @@ interface FinancialDataContextType {
   isBackendConnected: boolean;
   updateProfile: (data: Omit<UserProfile, "id" | "created_at" | "updated_at"> | Partial<UserProfile>) => Promise<UserProfile | null>;
   addGoal: (goal: Omit<FinancialGoal, "id" | "created_at" | "updated_at">) => Promise<void>;
+  updateGoal: (goalId: number, goalData: Partial<FinancialGoal>) => Promise<void>;
+  deleteGoal: (goalId: number) => Promise<void>;
   generateRecommendation: () => Promise<RecommendationResponse | null>;
+  recalculateAll: () => Promise<void>;
   refreshAll: () => Promise<void>;
 }
 
@@ -73,6 +76,25 @@ export function FinancialDataProvider({ children }: { children: React.ReactNode 
     refreshAll();
   }, [refreshAll]);
 
+  const recalculateAll = async () => {
+    if (!isAuthenticated) return;
+    try {
+      const [updatedAnalysis, updatedRec] = await Promise.all([
+        analysisService.getMyAnalysis(),
+        recommendationsService.generateMyRecommendation(),
+      ]);
+      setAnalysis(updatedAnalysis);
+      setRecommendation(updatedRec);
+      toast({
+        type: "success",
+        title: "Synchronized",
+        description: "Your risk assessment and recommendation engine are now fully updated and synchronized.",
+      });
+    } catch (err: any) {
+      console.warn("Recalculate failed:", err.message);
+    }
+  };
+
   const updateProfile = async (data: any): Promise<UserProfile | null> => {
     if (!isAuthenticated) {
       toast({
@@ -98,18 +120,29 @@ export function FinancialDataProvider({ children }: { children: React.ReactNode 
       const savedProfile = await profileService.updateMyProfile(payload);
       setProfile(savedProfile);
 
-      // Re-fetch real backend analysis
+      // Re-fetch real backend analysis (Risk Assessment & Financial Health)
+      let updatedAnalysis = null;
       try {
-        const updatedAnalysis = await analysisService.getMyAnalysis();
+        updatedAnalysis = await analysisService.getMyAnalysis();
         setAnalysis(updatedAnalysis);
       } catch (analysisErr) {
         console.warn("Could not fetch analysis immediately after saving profile:", analysisErr);
       }
 
+      // Automatically re-generate and sync recommendations if goals exist
+      if (goals && goals.length > 0) {
+        try {
+          const updatedRec = await recommendationsService.generateMyRecommendation();
+          setRecommendation(updatedRec);
+        } catch (recErr) {
+          console.warn("Could not auto-sync recommendation after profile update:", recErr);
+        }
+      }
+
       toast({
         type: "success",
-        title: "Profile Saved",
-        description: "Your financial profile has been saved to your account and metrics recalculated.",
+        title: "Profile & Plan Synchronized",
+        description: "Your financial profile, multi-factor risk assessment, and recommendations have been recalculated and synced.",
       });
       return savedProfile;
     } catch (err: any) {
@@ -149,19 +182,103 @@ export function FinancialDataProvider({ children }: { children: React.ReactNode 
       setGoals(updatedGoals);
 
       // Re-fetch real backend analysis
-      const updatedAnalysis = await analysisService.getMyAnalysis();
-      setAnalysis(updatedAnalysis);
+      try {
+        const updatedAnalysis = await analysisService.getMyAnalysis();
+        setAnalysis(updatedAnalysis);
+      } catch (analysisErr) {
+        console.warn("Could not fetch analysis after adding goal:", analysisErr);
+      }
+
+      // Automatically re-generate and sync recommendations
+      if (profile) {
+        try {
+          const updatedRec = await recommendationsService.generateMyRecommendation();
+          setRecommendation(updatedRec);
+        } catch (recErr) {
+          console.warn("Could not auto-sync recommendation after adding goal:", recErr);
+        }
+      }
 
       toast({
         type: "success",
-        title: "New Goal Added",
-        description: `${savedGoal.goal_type.replace(/_/g, " ")} goal has been incorporated into your roadmap.`,
+        title: "Goal Added & Roadmap Synced",
+        description: `${savedGoal.goal_type.replace(/_/g, " ")} goal added. Risk assessment and portfolio recommendations are synchronized.`,
       });
     } catch (err: any) {
       toast({
         type: "error",
         title: "Goal Creation Failed",
         description: err.message || "Unable to save goal to database.",
+      });
+      throw err;
+    }
+  };
+
+  const updateGoal = async (goalId: number, goalData: Partial<FinancialGoal>) => {
+    if (!isAuthenticated) return;
+    try {
+      const updated = await goalsService.updateGoal(goalId, goalData);
+      const updatedGoals = goals.map((g) => (g.id === goalId ? updated : g));
+      setGoals(updatedGoals);
+
+      const updatedAnalysis = await analysisService.getMyAnalysis();
+      setAnalysis(updatedAnalysis);
+
+      if (profile && updatedGoals.length > 0) {
+        const updatedRec = await recommendationsService.generateMyRecommendation();
+        setRecommendation(updatedRec);
+      }
+
+      toast({
+        type: "success",
+        title: "Goal Updated",
+        description: "Goal changes have been saved and roadmap recalculated.",
+      });
+    } catch (err: any) {
+      toast({
+        type: "error",
+        title: "Goal Update Failed",
+        description: err.message || "Unable to update goal.",
+      });
+      throw err;
+    }
+  };
+
+  const deleteGoal = async (goalId: number) => {
+    if (!isAuthenticated) return;
+    try {
+      await goalsService.deleteGoal(goalId);
+      const remainingGoals = goals.filter((g) => g.id !== goalId);
+      setGoals(remainingGoals);
+
+      try {
+        const updatedAnalysis = await analysisService.getMyAnalysis();
+        setAnalysis(updatedAnalysis);
+      } catch (e) {
+        console.warn("Failed to refresh analysis after deleting goal:", e);
+      }
+
+      if (profile && remainingGoals.length > 0) {
+        try {
+          const updatedRec = await recommendationsService.generateMyRecommendation();
+          setRecommendation(updatedRec);
+        } catch (e) {
+          console.warn("Failed to recalculate recommendation after deleting goal:", e);
+        }
+      } else if (remainingGoals.length === 0) {
+        setRecommendation(null);
+      }
+
+      toast({
+        type: "success",
+        title: "Goal Removed",
+        description: "Goal removed from roadmap and recommendations updated.",
+      });
+    } catch (err: any) {
+      toast({
+        type: "error",
+        title: "Goal Deletion Failed",
+        description: err.message || "Unable to delete goal.",
       });
       throw err;
     }
@@ -178,12 +295,18 @@ export function FinancialDataProvider({ children }: { children: React.ReactNode 
     }
 
     try {
-      const rec = await recommendationsService.generateMyRecommendation();
+      const [rec, updatedAnalysis] = await Promise.all([
+        recommendationsService.generateMyRecommendation(),
+        analysisService.getMyAnalysis().catch(() => null),
+      ]);
       setRecommendation(rec);
+      if (updatedAnalysis) {
+        setAnalysis(updatedAnalysis);
+      }
       toast({
         type: "success",
-        title: "Recommendation Generated",
-        description: "Your official SEBI-aligned investment roadmap has been generated and saved.",
+        title: "Recommendation Synchronized",
+        description: "Your official SEBI-aligned investment roadmap and risk metrics are completely synchronized.",
       });
       return rec;
     } catch (err: any) {
@@ -210,7 +333,10 @@ export function FinancialDataProvider({ children }: { children: React.ReactNode 
         isBackendConnected,
         updateProfile,
         addGoal,
+        updateGoal,
+        deleteGoal,
         generateRecommendation,
+        recalculateAll,
         refreshAll,
       }}
     >
@@ -226,3 +352,4 @@ export function useFinancialData() {
   }
   return context;
 }
+

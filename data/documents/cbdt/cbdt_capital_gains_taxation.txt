@@ -1,0 +1,38 @@
+# CBDT Tax Circular: Capital Gains Taxation Framework under Finance Act 2024
+# Organization: CBDT
+# Document Type: circular
+# Topic: taxation
+# Asset Class: all
+# Product Type: tax_code
+# Jurisdiction: IN
+# Publication Date: 2024-07-23
+# Effective Date: 2024-07-23
+# Source URL: https://incometaxindia.gov.in/communications/circular/circular-finance-act-2024.pdf
+# Version: 1.0
+# Last Updated: 2024-08-01
+# Is Active: True
+
+## Section 1: Executive Overview of Rationalized Capital Gains Regime
+The Finance (No. 2) Act, 2024 enacted comprehensive rationalization of capital gains tax rates, holding period thresholds, and indexation provisions across listed equity, mutual funds, debt securities, unlisted assets, and real estate, effective from 23rd July 2024.
+
+## Section 2: Listed Equity & Equity-Oriented Mutual Funds (Section 111A & 112A)
+### Subsection 2.1: Holding Period Threshold
+- Listed Equity Shares & Equity Mutual Funds: 12 months holding period for classification between Short-Term Capital Asset and Long-Term Capital Asset.
+
+### Subsection 2.2: Short-Term Capital Gains (STCG - Section 111A)
+- Applicable Rate: 20% on short-term gains (increased from 15% with effect from 23rd July 2024). Applicable when Securities Transaction Tax (STT) is paid on transfer.
+
+### Subsection 2.3: Long-Term Capital Gains (LTCG - Section 112A)
+- Applicable Rate: 12.5% on long-term gains (increased from 10% with effect from 23rd July 2024).
+- Annual Exemption Limit: The aggregate annual LTCG exemption under Section 112A is enhanced from Rs. 1,00,000 to Rs. 1,25,000 per financial year across all equity and equity mutual fund gains.
+- Indexation: No indexation benefit is available for listed equity or equity-oriented mutual funds.
+
+## Section 3: Debt Mutual Funds & Fixed Income Instruments (Section 50AA)
+### Subsection 3.1: Specified Mutual Funds Acquired on or after 1st April 2023
+- Definition: Mutual funds investing not more than 35% of total proceeds in equity shares of domestic companies.
+- Taxation Rule: Capital gains on specified debt mutual funds acquired on or after 1st April 2023 are deemed short-term capital gains under Section 50AA, taxable at the investor's applicable marginal income tax slab rate regardless of the holding period.
+
+## Section 4: Physical Gold, Gold ETFs, and Unlisted Assets
+### Subsection 4.1: Gold ETFs and Listed Gold Securities
+- Holding Period: 12 months for listed ETFs and bonds.
+- LTCG Rate: 12.5% without indexation for long-term transfers conducted on or after 23rd July 2024. Short-term gains taxed at investor slab rate.

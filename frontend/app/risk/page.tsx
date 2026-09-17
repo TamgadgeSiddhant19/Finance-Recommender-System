@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/Progress";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { useFinancialData } from "@/hooks/useFinancialData";
-import { ShieldCheck, AlertTriangle, ArrowRight, Gauge, CheckCircle2, UserPlus } from "lucide-react";
+import { ShieldCheck, AlertTriangle, ArrowRight, Gauge, CheckCircle2, UserPlus, RefreshCw } from "lucide-react";
 import { formatINR, formatPercent } from "@/lib/utils";
 
 export default function RiskAssessmentPage() {
@@ -26,7 +26,17 @@ export default function RiskAssessmentPage() {
 }
 
 function RiskContent() {
-  const { analysis, profile, hasProfile, isLoading } = useFinancialData();
+  const { analysis, profile, hasProfile, isLoading, recalculateAll } = useFinancialData();
+  const [isSyncing, setIsSyncing] = React.useState(false);
+
+  const handleSync = async () => {
+    setIsSyncing(true);
+    try {
+      await recalculateAll();
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -95,12 +105,25 @@ function RiskContent() {
           </p>
         </div>
 
-        <Link href="/recommendations">
-          <Button size="sm" className="gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white">
-            View Aligned Portfolio <ArrowRight className="w-3.5 h-3.5" />
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleSync}
+            isLoading={isSyncing}
+            className="gap-1.5 text-xs text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            Recalculate
           </Button>
-        </Link>
+          <Link href="/recommendations">
+            <Button size="sm" className="gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white">
+              View Aligned Portfolio <ArrowRight className="w-3.5 h-3.5" />
+            </Button>
+          </Link>
+        </div>
       </div>
+
 
       {/* Hero Score Visualizer */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

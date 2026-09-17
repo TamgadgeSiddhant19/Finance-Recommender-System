@@ -28,6 +28,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   Info,
+  Trash2,
 } from "lucide-react";
 
 interface GoalFormState {
@@ -58,11 +59,13 @@ export default function GoalsPage() {
 }
 
 function GoalsContent() {
-  const { goals, addGoal, analysis, hasProfile, isLoading } = useFinancialData();
+  const { goals, addGoal, deleteGoal, analysis, hasProfile, isLoading } = useFinancialData();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingGoalId, setDeletingGoalId] = useState<number | null>(null);
   const [newGoal, setNewGoal] = useState<GoalFormState>(EMPTY_GOAL_FORM);
   const [formError, setFormError] = useState<string | null>(null);
+
 
   // Projection Modal State
   const [selectedProjection, setSelectedProjection] = useState<GoalProjectionResponse | null>(null);
@@ -135,7 +138,20 @@ function GoalsContent() {
     }
   };
 
+  const handleDeleteGoal = async (goalId: number) => {
+    if (!confirm("Are you sure you want to remove this financial goal? Your roadmap and recommendations will automatically be updated.")) {
+      return;
+    }
+    setDeletingGoalId(goalId);
+    try {
+      await deleteGoal(goalId);
+    } finally {
+      setDeletingGoalId(null);
+    }
+  };
+
   if (isLoading) {
+
     return (
       <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
         <Skeleton className="h-8 w-64" />
@@ -222,8 +238,19 @@ function GoalsContent() {
                       >
                         {goal.priority} Priority
                       </Badge>
+                      {goal.id && (
+                        <button
+                          onClick={() => handleDeleteGoal(goal.id!)}
+                          disabled={deletingGoalId === goal.id}
+                          title="Delete Goal"
+                          className="p-1 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded transition cursor-pointer disabled:opacity-50"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   </CardHeader>
+
 
                   <CardContent className="space-y-4">
                     <div className="flex items-baseline justify-between">

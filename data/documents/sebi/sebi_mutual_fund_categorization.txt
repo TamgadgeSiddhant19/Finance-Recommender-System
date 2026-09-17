@@ -1,0 +1,63 @@
+# SEBI Master Circular on Categorization and Rationalization of Mutual Fund Schemes
+# Organization: SEBI
+# Document Type: circular
+# Topic: mutual_funds
+# Asset Class: equity
+# Product Type: mutual_fund
+# Jurisdiction: IN
+# Publication Date: 2017-10-06
+# Effective Date: 2018-06-01
+# Source URL: https://www.sebi.gov.in/legal/circulars/oct-2017/categorization-and-rationalization-of-mutual-fund-schemes_36199.html
+# Version: 2.1
+# Last Updated: 2024-04-01
+# Is Active: True
+
+## Section 1: Executive Summary and Statutory Objective
+To enable retail and institutional investors in India to evaluate and choose suitable mutual fund schemes without confusion across multiple indistinguishable products, SEBI established standardized categories and definitions for all open-ended mutual fund schemes operated by Asset Management Companies (AMCs) registered in India. Only one scheme per category is permitted per AMC, except for Index Funds/ETFs and Sectoral/Thematic Funds.
+
+## Section 2: Equity Scheme Categories and Portfolio Mandates
+### Subsection 2.1: Large Cap Fund
+- Mandate: Minimum 80% investment in equity and equity-related instruments of large-cap companies.
+- Market Cap Definition: Top 100 companies by full market capitalization listed on Indian stock exchanges (NSE/BSE).
+- Risk & Suitability: High risk, suitable for conservative-to-moderate equity investors seeking stability, steady compound growth, and liquidity.
+
+### Subsection 2.2: Mid Cap Fund
+- Mandate: Minimum 65% investment in equity and equity-related instruments of mid-cap companies.
+- Market Cap Definition: 101st to 250th companies by full market capitalization.
+- Risk & Suitability: Very High risk, higher growth potential than large caps with higher short-to-medium term volatility.
+
+### Subsection 2.3: Small Cap Fund
+- Mandate: Minimum 65% investment in equity and equity-related instruments of small-cap companies.
+- Market Cap Definition: 251st company onwards by full market capitalization.
+- Risk & Suitability: Very High risk, suitable for aggressive investors with a long investment horizon (7+ years).
+
+### Subsection 2.4: Flexi Cap Fund
+- Mandate: Minimum 65% investment in equity and equity-related instruments across large cap, mid cap, and small cap stocks without static minimum market cap constraints.
+- Dynamic Allocation: The fund manager has full discretion to shift allocation between market caps based on market valuations and macroeconomic fundamentals.
+
+### Subsection 2.5: Multi Cap Fund
+- Mandate: Minimum 75% total equity investment, with a mandatory minimum of 25% each in Large Cap, Mid Cap, and Small Cap companies at all times.
+
+### Subsection 2.6: ELSS (Equity Linked Savings Scheme)
+- Mandate: Minimum 80% investment in equity and equity-related instruments.
+- Statutory Feature: Mandatory 3-year lock-in period from the date of each SIP installment or lump sum investment. Eligible for Section 80C tax deduction under the Old Tax Regime.
+
+## Section 3: Debt Scheme Categories and Duration Mandates
+### Subsection 3.1: Overnight & Liquid Funds
+- Overnight Fund: Invests in debt securities having maturity of 1 business day. Lowest credit and interest rate risk.
+- Liquid Fund: Invests in debt and money market securities with Macaulay duration and maturity up to 91 days only.
+
+### Subsection 3.2: Short Duration & Corporate Bond Funds
+- Short Duration Fund: Investment in debt and money market instruments such that the Macaulay duration of the portfolio is between 1 year and 3 years.
+- Corporate Bond Fund: Minimum 80% investment in highest-rated corporate bonds (AA+ and above rating).
+
+## Section 4: Hybrid Scheme Categories and Asset Allocation
+### Subsection 4.1: Aggressive Hybrid Fund
+- Mandate: 65% to 80% in equity and equity-related instruments; 20% to 35% in debt instruments.
+- Taxation: Qualified as equity-oriented fund for capital gains taxation under Section 112A.
+
+### Subsection 4.2: Conservative Hybrid Fund
+- Mandate: 10% to 25% in equity instruments; 75% to 90% in debt instruments. Suitable for regular income seekers.
+
+### Subsection 4.3: Balanced Advantage / Dynamic Asset Allocation Fund
+- Mandate: Dynamically managed investment in equity and debt (0% to 100%) based on algorithmic or quantitative valuation models.

@@ -33,6 +33,22 @@ export const goalsService = {
     });
   },
 
+  async updateGoal(
+    goalId: number,
+    goalData: Partial<FinancialGoal>
+  ): Promise<FinancialGoal> {
+    return await apiClient<FinancialGoal>(`/goals/${goalId}`, {
+      method: "PUT",
+      body: JSON.stringify(goalData),
+    });
+  },
+
+  async deleteGoal(goalId: number): Promise<void> {
+    await apiClient<void>(`/goals/${goalId}`, {
+      method: "DELETE",
+    });
+  },
+
   async getGoalProjection(
     goalId: number,
     overrides?: {
@@ -71,3 +87,4 @@ export const goalsService = {
     );
   },
 };
+

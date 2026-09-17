@@ -1,0 +1,28 @@
+# AMFI Best Practice Guidelines: Mutual Fund Distribution and Code of Conduct
+# Organization: AMFI
+# Document Type: best_practice_guidelines
+# Topic: mutual_funds
+# Asset Class: all
+# Product Type: mutual_fund
+# Jurisdiction: IN
+# Publication Date: 2023-08-10
+# Effective Date: 2023-08-10
+# Source URL: https://www.amfiindia.com/research-information/amfi-guidelines
+# Version: 1.5
+# Last Updated: 2024-01-15
+# Is Active: True
+
+## Section 1: Role of Association of Mutual Funds in India (AMFI)
+The Association of Mutual Funds in India (AMFI) is the self-regulatory and industry body representing all SEBI-registered Asset Management Companies (AMCs). AMFI establishes best practices, code of ethics, ARN licensing for mutual fund distributors, and investor awareness programs.
+
+## Section 2: Direct vs Regular Mutual Fund Plans
+### Subsection 2.1: Statutory Distinction
+- Direct Plans: Purchased directly through the AMC or registered Execution-Only Platforms (EOPs). Direct plans have lower Total Expense Ratios (TER) because no distributor commission or brokerage is paid, resulting in higher net compounded returns over the long term.
+- Regular Plans: Purchased through registered Mutual Fund Distributors (MFDs). The AMC pays trail commission out of the scheme expense ratio to the distributor for advisory, onboarding, and ongoing service.
+
+## Section 3: Risk-o-meter and Portfolio Disclosure Norms
+### Subsection 3.1: Dynamic Scheme Risk-o-meter
+- AMCs are mandated by SEBI and AMFI to evaluate portfolio holdings monthly and assign risk ratings: Low, Low to Moderate, Moderate, Moderately High, High, and Very High.
+
+### Subsection 3.2: Monthly Portfolio Disclosures
+- All AMCs must publish complete portfolio disclosures including top 10 holdings, sector weightings, and debt instrument credit ratings within 10 days of the end of each calendar month.

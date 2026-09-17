@@ -18,6 +18,19 @@ async def lifespan(app: FastAPI):
         await conn.execute(text("ALTER TABLE recommendations ADD COLUMN IF NOT EXISTS goal_feasibility_status VARCHAR(50);"))
         await conn.execute(text("ALTER TABLE recommendations ADD COLUMN IF NOT EXISTS goal_metadata JSON;"))
         await conn.execute(text("ALTER TABLE recommendation_items ADD COLUMN IF NOT EXISTS intelligence_metadata JSON;"))
+        # RAG 2.0 Document metadata columns
+        await conn.execute(text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS product_type VARCHAR(50);"))
+        await conn.execute(text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS jurisdiction VARCHAR(20) DEFAULT 'IN';"))
+        await conn.execute(text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS effective_date VARCHAR(50);"))
+        await conn.execute(text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS source_url VARCHAR(500);"))
+        await conn.execute(text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS version VARCHAR(20) DEFAULT '1.0';"))
+        await conn.execute(text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS last_updated VARCHAR(50);"))
+        await conn.execute(text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;"))
+        # RAG 2.0 DocumentChunk provenance columns
+        await conn.execute(text("ALTER TABLE document_chunks ADD COLUMN IF NOT EXISTS section VARCHAR(255);"))
+        await conn.execute(text("ALTER TABLE document_chunks ADD COLUMN IF NOT EXISTS subsection VARCHAR(255);"))
+        await conn.execute(text("ALTER TABLE document_chunks ADD COLUMN IF NOT EXISTS page_number INTEGER;"))
+        await conn.execute(text("ALTER TABLE document_chunks ADD COLUMN IF NOT EXISTS paragraph_index INTEGER;"))
     yield
 
 app = FastAPI(

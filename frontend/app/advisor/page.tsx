@@ -68,13 +68,19 @@ export default function AdvisorPage() {
     try {
       const response = await ragService.queryKnowledge({
         query: text,
-        top_k: 3,
+        top_k: 4,
+        enable_hybrid: true,
+        enable_reranking: true,
       });
 
       const aiMsg: ChatMessage = {
         id: `ai-${Date.now()}`,
         sender: "assistant",
         content: response.answer,
+        grounded: response.grounded,
+        grounding_status: response.grounding_status,
+        query_intent: response.query_intent,
+        citations: response.citations,
         sources: response.sources,
         timestamp: new Date().toISOString(),
       };
@@ -104,23 +110,28 @@ export default function AdvisorPage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
               <Sparkles className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-              AI Regulatory &amp; Financial Advisor
+              AI Regulatory &amp; Financial Advisor (RAG 2.0)
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Grounded on official Indian statutory documents (SEBI, RBI, CBDT, PFRDA) using dense vector RAG.
+              Strictly grounded on official Indian statutory documents (SEBI, RBI, CBDT, PFRDA, AMFI, IRDAI) with hybrid retrieval and reranking.
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Badge variant="blue" size="sm">
               <BookOpen className="w-3 h-3 mr-1" />
-              pgvector RAG
+              Hybrid pgvector + BM25
             </Badge>
             <Badge variant="emerald" size="sm">
               <ShieldCheck className="w-3 h-3 mr-1" />
-              Grounded AI
+              Strict Grounding
             </Badge>
           </div>
+        </div>
+
+        {/* Advisory Boundary Disclaimer */}
+        <div className="px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
+          <span>🏛️ <strong>Authoritative Knowledge:</strong> Answers cite statutory regulations and official circulars. Financial calculations &amp; portfolio allocations are handled by deterministic engines.</span>
         </div>
 
         {/* Chat Message Window */}
@@ -145,6 +156,27 @@ export default function AdvisorPage() {
                   </div>
 
                   <div className="space-y-2 flex-1">
+                    {/* Status badges for assistant messages */}
+                    {!isUser && (msg.grounding_status || msg.query_intent) && (
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {msg.grounding_status === "VERIFIED" && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                            <ShieldCheck className="w-3 h-3 mr-1" /> Grounded &amp; Verified
+                          </span>
+                        )}
+                        {msg.grounding_status === "INSUFFICIENT_CONTEXT" && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
+                            ⚠️ Insufficient Corpus Evidence
+                          </span>
+                        )}
+                        {msg.query_intent && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
+                            Intent: {msg.query_intent}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
                     <div
                       className={`p-4 rounded-2xl text-xs sm:text-sm leading-relaxed ${
                         isUser
@@ -155,31 +187,48 @@ export default function AdvisorPage() {
                       <div className="whitespace-pre-wrap">{msg.content}</div>
                     </div>
 
-                    {/* Source Citations Section */}
-                    {msg.sources && msg.sources.length > 0 && (
+                    {/* Citations & Provenance Cards */}
+                    {msg.citations && msg.citations.length > 0 && (
                       <div className="space-y-1.5 pt-1">
                         <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 flex items-center gap-1">
                           <Building2 className="w-3 h-3 text-sky-600 dark:text-sky-400" />
-                          Retrieved Regulatory Sources ({msg.sources.length}):
+                          Authoritative Citations ({msg.citations.length}):
                         </p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          {msg.sources.map((src, sIdx) => (
+                          {msg.citations.map((cit, cIdx) => (
                             <div
-                              key={sIdx}
+                              key={cIdx}
                               className="p-2.5 rounded-lg bg-slate-100/80 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-700 dark:text-slate-300 space-y-1"
                             >
                               <div className="flex items-center justify-between">
-                                <span className="font-semibold text-emerald-700 dark:text-emerald-300 truncate">
-                                  {src.organization}
+                                <span className="font-semibold text-emerald-700 dark:text-emerald-300">
+                                  {cit.organization}
                                 </span>
                                 <span className="text-[10px] text-sky-700 dark:text-sky-400 font-mono">
-                                  {Math.round(src.similarity_score * 100)}% match
+                                  {Math.round(cit.relevance_score * 100)}% match
                                 </span>
                               </div>
-                              <p className="text-slate-500 dark:text-slate-400 truncate text-[10px]">{src.document_title}</p>
-                              <p className="text-slate-700 dark:text-slate-300 line-clamp-2 italic text-[10px] pt-0.5">
-                                &ldquo;{src.content}&rdquo;
+                              <p className="text-slate-900 dark:text-slate-200 font-medium truncate text-[10px]">
+                                {cit.title}
                               </p>
+                              {cit.section && (
+                                <p className="text-slate-500 dark:text-slate-400 text-[10px] truncate">
+                                  📌 {cit.section} {cit.subsection ? `› ${cit.subsection}` : ""}
+                                </p>
+                              )}
+                              <div className="flex items-center justify-between text-[9px] text-slate-400 pt-0.5">
+                                <span>Eff: {cit.effective_date || cit.publication_date || "2024"} (v{cit.version})</span>
+                                {cit.source_url && (
+                                  <a
+                                    href={cit.source_url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-0.5"
+                                  >
+                                    Source <ExternalLink className="w-2.5 h-2.5" />
+                                  </a>
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>

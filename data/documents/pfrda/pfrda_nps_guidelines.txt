@@ -1,0 +1,46 @@
+# PFRDA Master Guidelines: National Pension System (NPS) Architecture and Benefits
+# Organization: PFRDA
+# Document Type: master_guidelines
+# Topic: retirement
+# Asset Class: hybrid
+# Product Type: nps
+# Jurisdiction: IN
+# Publication Date: 2023-01-10
+# Effective Date: 2023-04-01
+# Source URL: https://www.pfrda.org.in/myauth/admin/showimg.cshtml?ID=2341
+# Version: 2.0
+# Last Updated: 2024-03-01
+# Is Active: True
+
+## Section 1: Overview and Structure of NPS
+The National Pension System (NPS) is a voluntary, long-term retirement savings scheme regulated by the Pension Fund Regulatory and Development Authority (PFRDA) under the PFRDA Act, 2013. Open to all Indian citizens (residents and NRIs) between 18 and 70 years of age.
+
+## Section 2: Account Types (Tier-I vs. Tier-II)
+### Subsection 2.1: NPS Tier-I Account (Mandatory Pension Account)
+- Lock-in & Maturity: Restricted withdrawals until superannuation at age 60.
+- Minimum Contribution: Rs. 500 per transaction and minimum Rs. 1,000 per financial year.
+- Exit/Maturity Rules: At least 40% of the accumulated pension corpus must be utilized to purchase an immediate annuity from an IRDAI-empanelled life insurance company. Up to 60% of the corpus can be withdrawn as a tax-free lump sum.
+
+### Subsection 2.2: NPS Tier-II Account (Voluntary Investment Account)
+- Open only to subscribers holding an active Tier-I account.
+- Complete liquidity with no lock-in period or withdrawal restrictions.
+- No special tax deductions for general private sector subscribers.
+
+## Section 3: Asset Classes and Investment Choices
+### Subsection 3.1: Asset Classes
+- Asset Class E (Equity): High-growth equity instruments (up to 75% allocation).
+- Asset Class C (Corporate Bonds): Medium-risk debt instruments of PSUs and corporate entities.
+- Asset Class G (Government Securities): Low-risk central and state government bonds.
+- Asset Class A (Alternative Assets): Real estate investment trusts (REITs), InvITs (up to 5% maximum).
+
+### Subsection 3.2: Choice Modes
+- Active Choice: Investor specifies exact asset allocation percentages across E, C, G, A.
+- Auto Choice: Algorithmic lifecycle fund automatically rebalances equity down as age progresses (LC-75, LC-50, LC-25).
+
+## Section 4: Income Tax Benefits for NPS Tier-I Subscribers
+### Subsection 4.1: Section 80CCD(1) and 80CCD(1B) Deductions
+- Section 80CCD(1): Employee/self-employed contribution eligible within the overall Rs. 1.5 Lakh limit of Section 80C.
+- Section 80CCD(1B): Exclusive additional deduction up to Rs. 50,000 over and above the Section 80C ceiling (Total deduction up to Rs. 2,00,000).
+
+### Subsection 4.2: Employer Contribution under Section 80CCD(2)
+- Corporate Sector subscribers can claim deduction for employer contribution up to 10% of salary (Basic + DA) under the Old Tax Regime, and up to 14% for Central/State Government employees (also allowed under New Tax Regime under Section 80CCD(2)).
